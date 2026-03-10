@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../../../core/router/app_router.dart';
 import '../../application/providers.dart';
 
 /// Splash page - shown while checking authentication state
@@ -31,9 +33,22 @@ class _SplashPageState extends ConsumerState<SplashPage>
     );
     _controller.forward();
 
-    // Check session on app start
-    Future.microtask(() {
-      ref.read(authStateProvider.notifier).checkSession();
+    // Check session and biometric on app start
+    Future.microtask(() async {
+      // First check if biometric unlock is needed
+      await ref.read(biometricAuthStateProvider.notifier).checkBiometricRequired();
+      final biometricState = ref.read(biometricAuthStateProvider);
+
+      if (biometricState is BiometricAuthRequired) {
+        // Redirect to biometric unlock page
+        if (mounted) context.go(AppRoutes.biometricUnlock);
+      } else if (biometricState is BiometricAuthSuccess) {
+        // Biometric auto-authenticated (within 24h), check session
+        ref.read(authStateProvider.notifier).checkSession();
+      } else {
+        // No biometric or not enabled, do normal session check
+        ref.read(authStateProvider.notifier).checkSession();
+      }
     });
   }
 

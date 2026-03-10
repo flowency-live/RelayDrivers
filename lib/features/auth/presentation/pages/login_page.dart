@@ -254,7 +254,24 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     ),
                   ),
 
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 16),
+
+                  // Phone login link (mobile-first)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Prefer phone? ',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                      TextButton(
+                        onPressed: () => context.go(AppRoutes.phoneLogin),
+                        child: const Text('Sign in with phone'),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 16),
 
                   // Register link
                   Row(
