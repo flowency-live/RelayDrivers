@@ -1,0 +1,46 @@
+name: relay_drivers
+description: "Relay Drivers - Driver onboarding and job management for private hire operators"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State Management - Riverpod
+  flutter_riverpod: ^2.6.0
+
+  # API Client - Dio with interceptors for JWT
+  dio: ^5.9.0
+
+  # Secure Token Storage
+  flutter_secure_storage: ^9.2.0
+
+  # Navigation
+  go_router: ^14.8.0
+
+  # Icons
+  cupertino_icons: ^1.0.8
+
+  # Image Picker for camera/gallery
+  image_picker: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  # Linting
+  flutter_lints: ^6.0.0
+
+  # Testing
+  mockito: ^5.4.6
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
