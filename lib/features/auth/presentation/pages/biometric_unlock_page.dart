@@ -76,7 +76,7 @@ class _BiometricUnlockPageState extends ConsumerState<BiometricUnlockPage> {
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
                 loading: () => const SizedBox.shrink(),
-                error: (_, __) => const SizedBox.shrink(),
+                error: (e, s) => const SizedBox.shrink(),
               ),
               const SizedBox(height: 48),
               // Biometric icon and status

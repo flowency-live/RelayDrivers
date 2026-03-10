@@ -298,7 +298,7 @@ class _UploadDocumentSheetState extends ConsumerState<UploadDocumentSheet> {
                       )
                     else
                       DropdownButtonFormField<String>(
-                        value: _selectedVehicleVrn,
+                        initialValue: _selectedVehicleVrn,
                         decoration: InputDecoration(
                           hintText: 'Select vehicle',
                           border: OutlineInputBorder(

@@ -1,5 +1,3 @@
-/// Face registration status and verification models
-
 /// Face registration status from backend
 class FaceRegistration {
   final String faceId;
