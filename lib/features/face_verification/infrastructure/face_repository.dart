@@ -72,7 +72,7 @@ class FaceRepository {
       ApiConfig.faceVerify,
       data: {
         's3Key': s3Key,
-        ?'confidenceThreshold': confidenceThreshold,
+        if (confidenceThreshold != null) 'confidenceThreshold': confidenceThreshold,
       },
     );
     final data = response.data as Map<String, dynamic>;

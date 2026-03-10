@@ -140,8 +140,8 @@ class AuthRepository {
     final response = await _dioClient.dio.post(
       ApiConfig.authCheckIdentity,
       data: {
-        ?'phone': phone,
-        ?'email': email,
+        if (phone != null) 'phone': phone,
+        if (email != null) 'email': email,
       },
     );
     return IdentityCheckResponse.fromJson(response.data as Map<String, dynamic>);
