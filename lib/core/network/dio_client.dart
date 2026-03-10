@@ -151,4 +151,9 @@ class DioClient {
     final token = await _secureStorage.read(key: accessTokenKey);
     return token != null;
   }
+
+  /// Get current access token (for biometric storage)
+  Future<String?> getAccessToken() async {
+    return await _secureStorage.read(key: accessTokenKey);
+  }
 }

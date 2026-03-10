@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../application/face_providers.dart';
+import '../../domain/models/face_registration.dart';
 import '../widgets/face_capture_widget.dart';
 
 /// Face verification page - verify driver identity against registered face

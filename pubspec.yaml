@@ -29,6 +29,9 @@ dependencies:
   # Image Picker for camera/gallery
   image_picker: ^1.0.8
 
+  # Biometric authentication (fingerprint/Face ID)
+  local_auth: ^2.3.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

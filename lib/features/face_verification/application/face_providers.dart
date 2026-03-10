@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/network/dio_client.dart';
+import '../../auth/application/providers.dart';
 import '../domain/models/face_registration.dart';
 import '../infrastructure/face_repository.dart';
 
