@@ -2,8 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/auth/application/providers.dart';
+import '../../features/auth/domain/models/driver_user.dart';
+import '../../features/auth/presentation/pages/biometric_unlock_page.dart';
+import '../../features/auth/presentation/pages/invite_entry_page.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/magic_link_page.dart';
+import '../../features/auth/presentation/pages/phone_login_page.dart';
 import '../../features/auth/presentation/pages/register_page.dart';
 import '../../features/auth/presentation/pages/splash_page.dart';
 import '../../features/home/presentation/pages/home_page.dart';
@@ -15,7 +19,10 @@ import '../../features/onboarding/presentation/pages/onboarding_page.dart';
 /// App routes
 class AppRoutes {
   static const String splash = '/';
+  static const String inviteEntry = '/invite';
   static const String login = '/login';
+  static const String phoneLogin = '/login/phone';
+  static const String biometricUnlock = '/unlock';
   static const String register = '/register';
   static const String magicLink = '/auth/verify/:token';
   static const String home = '/home';
@@ -57,22 +64,27 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             : AppRoutes.splash;
       }
 
-      // If not authenticated, redirect to login (unless on public auth pages)
+      // If not authenticated, redirect to invite entry (unless on public auth pages)
+      final isInviteRoute = state.matchedLocation == AppRoutes.inviteEntry;
       final isLoginRoute = state.matchedLocation == AppRoutes.login;
+      final isPhoneLoginRoute = state.matchedLocation == AppRoutes.phoneLogin;
+      final isBiometricRoute = state.matchedLocation == AppRoutes.biometricUnlock;
       final isRegisterRoute = state.matchedLocation == AppRoutes.register;
       final isSplashRoute = state.matchedLocation == AppRoutes.splash;
       final isMagicLinkRoute = state.matchedLocation.startsWith('/auth/verify');
       final isOnboardingRoute = state.matchedLocation == AppRoutes.onboarding;
+      final isAuthRoute = isInviteRoute || isLoginRoute || isPhoneLoginRoute || isBiometricRoute || isRegisterRoute || isMagicLinkRoute;
 
       if (!isAuthenticated) {
-        // Allow access to login, register, and magic link without auth
-        if (isLoginRoute || isRegisterRoute || isMagicLinkRoute) return null;
-        return AppRoutes.login;
+        // Allow access to auth pages without auth
+        if (isAuthRoute) return null;
+        // Default to invite entry (invite-only onboarding)
+        return AppRoutes.inviteEntry;
       }
 
       // If authenticated with onboarding status, redirect to onboarding
       // (unless already on onboarding or sub-pages for completing onboarding)
-      final isOnboardingStatus = userStatus == 'onboarding';
+      final isOnboardingStatus = userStatus == DriverStatus.onboarding;
       final isOnboardingSubPage = state.matchedLocation == AppRoutes.profile ||
           state.matchedLocation == AppRoutes.vehicles ||
           state.matchedLocation == AppRoutes.documents;
@@ -81,8 +93,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         return AppRoutes.onboarding;
       }
 
-      // If authenticated and on login/register/splash/magic-link, redirect appropriately
-      if (isLoginRoute || isRegisterRoute || isSplashRoute || isMagicLinkRoute) {
+      // If authenticated and on auth pages, redirect appropriately
+      if (isAuthRoute || isSplashRoute) {
         return isOnboardingStatus ? AppRoutes.onboarding : AppRoutes.home;
       }
 
@@ -94,8 +106,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const SplashPage(),
       ),
       GoRoute(
+        path: AppRoutes.inviteEntry,
+        builder: (context, state) => const InviteEntryPage(),
+      ),
+      GoRoute(
         path: AppRoutes.login,
         builder: (context, state) => const LoginPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.phoneLogin,
+        builder: (context, state) => const PhoneLoginPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.biometricUnlock,
+        builder: (context, state) => const BiometricUnlockPage(),
       ),
       GoRoute(
         path: AppRoutes.register,

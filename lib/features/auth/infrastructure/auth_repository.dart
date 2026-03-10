@@ -3,6 +3,8 @@ import '../../../core/network/dio_client.dart';
 import '../domain/models/auth_response.dart';
 import '../domain/models/driver_user.dart';
 import '../domain/models/login_request.dart';
+import '../domain/models/otp_models.dart';
+import '../domain/models/invite_models.dart';
 
 /// Auth repository - infrastructure layer
 /// Handles API calls and token storage
@@ -129,5 +131,67 @@ class AuthRepository {
   /// Check if user has valid token
   Future<bool> hasValidToken() async {
     return _dioClient.hasValidToken();
+  }
+
+  // ============ OTP Authentication ============
+
+  /// Check if phone/email identity exists (for "Welcome back" UI)
+  Future<IdentityCheckResponse> checkIdentity({String? phone, String? email}) async {
+    final response = await _dioClient.dio.post(
+      ApiConfig.authCheckIdentity,
+      data: {
+        if (phone != null) 'phone': phone,
+        if (email != null) 'email': email,
+      },
+    );
+    return IdentityCheckResponse.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  /// Request OTP code via SMS
+  Future<OtpRequestResponse> requestOtp(String phone) async {
+    final response = await _dioClient.dio.post(
+      ApiConfig.authRequestOtp,
+      data: {'phone': phone},
+    );
+    return OtpRequestResponse.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  /// Verify OTP code and login
+  Future<OtpVerifyResponse> verifyOtp(String phone, String otp) async {
+    final response = await _dioClient.dio.post(
+      ApiConfig.authVerifyOtp,
+      data: {'phone': phone, 'otp': otp},
+    );
+    return OtpVerifyResponse.fromJson(
+      response.data as Map<String, dynamic>,
+      response.headers.map,
+    );
+  }
+
+  // ============ Invite-based Authentication ============
+
+  /// Verify invite code and get driver info (pre-claim step)
+  Future<InviteVerifyResponse> verifyInvite(String code) async {
+    final response = await _dioClient.dio.post(
+      ApiConfig.authInviteVerify,
+      data: {'code': code},
+    );
+    return InviteVerifyResponse.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  /// Claim invite with OTP verification
+  Future<InviteClaimResponse> claimInvite(String code, String phone, String otp) async {
+    final response = await _dioClient.dio.post(
+      ApiConfig.authInviteClaim,
+      data: {
+        'code': code,
+        'phone': phone,
+        'otp': otp,
+      },
+    );
+    return InviteClaimResponse.fromJson(
+      response.data as Map<String, dynamic>,
+      response.headers.map,
+    );
   }
 }
