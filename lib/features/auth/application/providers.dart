@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/dio_client.dart';
-import '../domain/models/auth_response.dart';
 import '../domain/models/auth_state.dart';
 import '../domain/models/driver_user.dart';
 import '../domain/models/invite_models.dart';

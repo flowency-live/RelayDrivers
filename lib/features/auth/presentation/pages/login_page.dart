@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/router/app_router.dart';
 import '../../application/providers.dart';
 import '../../domain/models/auth_state.dart';
-import '../../domain/models/driver_user.dart';
 
 /// Login page with email/password and magic link authentication
 class LoginPage extends ConsumerStatefulWidget {

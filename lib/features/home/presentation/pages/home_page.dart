@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/application/providers.dart';
-import '../../../auth/domain/services/auth_service.dart';
 import '../../../../core/router/app_router.dart';
 
 /// Home page - main dashboard for drivers
