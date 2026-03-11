@@ -3,14 +3,14 @@ frontend:
   phases:
     preBuild:
       commands:
-        # Install Flutter
+        # Install Flutter using git clone (more reliable on Amplify)
         - |
-          if ! command -v flutter &> /dev/null; then
-            echo "Installing Flutter..."
-            curl -sS https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.24.4-stable.tar.xz | tar xJf -
-            export PATH="$PATH:$(pwd)/flutter/bin"
+          if [ ! -d "flutter" ]; then
+            echo "Cloning Flutter SDK..."
+            git clone https://github.com/flutter/flutter.git -b stable --depth 1
           fi
         - export PATH="$PATH:$(pwd)/flutter/bin"
+        - flutter precache --web
         - flutter --version
         - flutter pub get
     build:
