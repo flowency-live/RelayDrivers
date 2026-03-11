@@ -107,7 +107,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: AppRoutes.inviteEntry,
-        builder: (context, state) => const InviteEntryPage(),
+        builder: (context, state) {
+          // Extract invite code from query parameter for deep linking
+          final code = state.uri.queryParameters['code'];
+          return InviteEntryPage(initialCode: code);
+        },
       ),
       GoRoute(
         path: AppRoutes.login,
