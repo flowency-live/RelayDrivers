@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/router/app_router.dart';
+import '../../../../core/widgets/pwa_install_banner.dart';
 import '../../../auth/application/providers.dart';
 import '../../../face_verification/application/face_providers.dart';
 import '../../application/onboarding_providers.dart';
@@ -472,6 +473,8 @@ class _CompletionScreen extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              // PWA Install Banner - top of completion screen
+              const PwaInstallBanner(),
               const Spacer(),
               // Success animation/icon
               Container(

@@ -1,3 +1,24 @@
+/// Tenant contact information for support
+class TenantContact {
+  final String? companyName;
+  final String? supportEmail;
+  final String? supportPhone;
+
+  const TenantContact({
+    this.companyName,
+    this.supportEmail,
+    this.supportPhone,
+  });
+
+  factory TenantContact.fromJson(Map<String, dynamic> json) {
+    return TenantContact(
+      companyName: json['companyName'] as String?,
+      supportEmail: json['supportEmail'] as String?,
+      supportPhone: json['supportPhone'] as String?,
+    );
+  }
+}
+
 /// Driver profile model with editable fields
 class DriverProfile {
   final String driverId;
@@ -19,6 +40,9 @@ class DriverProfile {
   final String? dvlaCheckCode;
   final String? dvlaLicenceExpiry;
 
+  // Tenant contact info (for status card and support)
+  final TenantContact? tenant;
+
   const DriverProfile({
     required this.driverId,
     required this.email,
@@ -36,6 +60,7 @@ class DriverProfile {
     this.dvlaLicenceNumber,
     this.dvlaCheckCode,
     this.dvlaLicenceExpiry,
+    this.tenant,
   });
 
   String get fullName => '$firstName $lastName';
@@ -62,6 +87,9 @@ class DriverProfile {
       dvlaLicenceNumber: json['dvlaLicenceNumber'] as String?,
       dvlaCheckCode: json['dvlaCheckCode'] as String?,
       dvlaLicenceExpiry: json['dvlaLicenceExpiry'] as String?,
+      tenant: json['tenant'] != null
+          ? TenantContact.fromJson(json['tenant'] as Map<String, dynamic>)
+          : null,
     );
   }
 
@@ -101,6 +129,7 @@ class DriverProfile {
     String? dvlaLicenceNumber,
     String? dvlaCheckCode,
     String? dvlaLicenceExpiry,
+    TenantContact? tenant,
   }) {
     return DriverProfile(
       driverId: driverId ?? this.driverId,
@@ -119,6 +148,7 @@ class DriverProfile {
       dvlaLicenceNumber: dvlaLicenceNumber ?? this.dvlaLicenceNumber,
       dvlaCheckCode: dvlaCheckCode ?? this.dvlaCheckCode,
       dvlaLicenceExpiry: dvlaLicenceExpiry ?? this.dvlaLicenceExpiry,
+      tenant: tenant ?? this.tenant,
     );
   }
 

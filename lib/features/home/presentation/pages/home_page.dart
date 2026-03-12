@@ -2,16 +2,34 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/application/providers.dart';
+import '../../../profile/application/profile_providers.dart';
 import '../../../../core/router/app_router.dart';
+import '../../../../core/widgets/pwa_install_banner.dart';
+import '../widgets/status_info_card.dart';
 
 /// Home page - main dashboard for drivers
-class HomePage extends ConsumerWidget {
+class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends ConsumerState<HomePage> {
+  @override
+  void initState() {
+    super.initState();
+    // Load profile to get tenant contact info
+    Future.microtask(() {
+      ref.read(profileStateProvider.notifier).loadProfile();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider);
     final authService = ref.watch(authServiceProvider);
+    final profile = ref.watch(currentProfileProvider);
 
     if (user == null) {
       return const Scaffold(
@@ -36,6 +54,9 @@ class HomePage extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // PWA Install Banner
+            const PwaInstallBanner(),
+
             // Greeting
             Text(
               authService.getGreeting(user),
@@ -90,39 +111,20 @@ class HomePage extends ConsumerWidget {
 
             const SizedBox(height: 32),
 
-            // Status card
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        _getStatusIcon(user.status),
-                        color: _getStatusColor(user.status),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Account Status',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                    ],
+            // Status card with tenant contact info
+            StatusInfoCard(
+              status: user.status.value,
+              companyName: profile?.tenant?.companyName,
+              supportEmail: profile?.tenant?.supportEmail,
+              supportPhone: profile?.tenant?.supportPhone,
+              onMessageTap: () {
+                // TODO: Navigate to support chat when implemented
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Support chat coming soon'),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _getStatusText(user.status),
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: _getStatusColor(user.status),
-                        ),
-                  ),
-                ],
-              ),
+                );
+              },
             ),
 
             const SizedBox(height: 16),
@@ -155,39 +157,6 @@ class HomePage extends ConsumerWidget {
         ),
       ),
     );
-  }
-
-  IconData _getStatusIcon(dynamic status) {
-    final statusStr = status.toString().split('.').last;
-    return switch (statusStr) {
-      'active' => Icons.check_circle,
-      'onboarding' => Icons.pending,
-      'pending' => Icons.hourglass_empty,
-      'suspended' => Icons.block,
-      _ => Icons.help,
-    };
-  }
-
-  Color _getStatusColor(dynamic status) {
-    final statusStr = status.toString().split('.').last;
-    return switch (statusStr) {
-      'active' => const Color(0xFF2ECC71),
-      'onboarding' => const Color(0xFFF39C12),
-      'pending' => const Color(0xFF3498DB),
-      'suspended' => const Color(0xFFE63946),
-      _ => const Color(0xFFB0B0B0),
-    };
-  }
-
-  String _getStatusText(dynamic status) {
-    final statusStr = status.toString().split('.').last;
-    return switch (statusStr) {
-      'active' => 'Your account is active and ready to accept jobs',
-      'onboarding' => 'Complete your profile to start accepting jobs',
-      'pending' => 'Your application is being reviewed',
-      'suspended' => 'Your account has been suspended',
-      _ => 'Unknown status',
-    };
   }
 }
 

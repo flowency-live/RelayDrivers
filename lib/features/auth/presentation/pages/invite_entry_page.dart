@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/router/app_router.dart';
+import '../../../../core/widgets/pwa_install_banner.dart';
 import '../../application/providers.dart';
 import '../../domain/models/invite_models.dart';
 
@@ -125,15 +126,20 @@ class _InviteEntryPageState extends ConsumerState<InviteEntryPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // PWA Install Banner
+              const PwaInstallBanner(),
+              const SizedBox(height: 16),
+
               // Logo/Branding
               Container(
-                height: 80,
-                width: 80,
+                height: 100,
+                width: 100,
                 alignment: Alignment.center,
-                child: Icon(
-                  Icons.local_taxi,
-                  size: 64,
-                  color: theme.colorScheme.primary,
+                child: Image.asset(
+                  'assets/images/Relay_Logo.png',
+                  width: 100,
+                  height: 100,
+                  fit: BoxFit.contain,
                 ),
               ),
               const SizedBox(height: 24),
