@@ -190,6 +190,29 @@ class _ProfileContent extends ConsumerWidget {
                 ? '****${profile.nationalInsurance!.substring(profile.nationalInsurance!.length - 4)}'
                 : 'Not set',
           ),
+          const SizedBox(height: 24),
+
+          // DVLA Driving Licence
+          Text(
+            'UK Driving Licence',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 12),
+          _ProfileField(
+            icon: Icons.credit_card_outlined,
+            label: 'Licence Number',
+            value: profile.dvlaLicenceNumber ?? 'Not set',
+          ),
+          _ProfileField(
+            icon: Icons.pin_outlined,
+            label: 'Check Code',
+            value: profile.dvlaCheckCode ?? 'Not set',
+          ),
+          _ProfileField(
+            icon: Icons.calendar_today_outlined,
+            label: 'Licence Expiry',
+            value: profile.dvlaLicenceExpiry ?? 'Not set',
+          ),
           const SizedBox(height: 32),
 
           // Edit button
@@ -336,6 +359,9 @@ class _EditProfilePageState extends ConsumerState<_EditProfilePage> {
   late TextEditingController _addressController;
   late TextEditingController _cityController;
   late TextEditingController _postcodeController;
+  late TextEditingController _dvlaLicenceNumberController;
+  late TextEditingController _dvlaCheckCodeController;
+  late TextEditingController _dvlaLicenceExpiryController;
 
   @override
   void initState() {
@@ -349,6 +375,12 @@ class _EditProfilePageState extends ConsumerState<_EditProfilePage> {
     _cityController = TextEditingController(text: widget.profile.city ?? '');
     _postcodeController =
         TextEditingController(text: widget.profile.postcode ?? '');
+    _dvlaLicenceNumberController =
+        TextEditingController(text: widget.profile.dvlaLicenceNumber ?? '');
+    _dvlaCheckCodeController =
+        TextEditingController(text: widget.profile.dvlaCheckCode ?? '');
+    _dvlaLicenceExpiryController =
+        TextEditingController(text: widget.profile.dvlaLicenceExpiry ?? '');
   }
 
   @override
@@ -359,6 +391,9 @@ class _EditProfilePageState extends ConsumerState<_EditProfilePage> {
     _addressController.dispose();
     _cityController.dispose();
     _postcodeController.dispose();
+    _dvlaLicenceNumberController.dispose();
+    _dvlaCheckCodeController.dispose();
+    _dvlaLicenceExpiryController.dispose();
     super.dispose();
   }
 
@@ -379,6 +414,15 @@ class _EditProfilePageState extends ConsumerState<_EditProfilePage> {
           : null,
       postcode: _postcodeController.text.trim().isNotEmpty
           ? _postcodeController.text.trim()
+          : null,
+      dvlaLicenceNumber: _dvlaLicenceNumberController.text.trim().isNotEmpty
+          ? _dvlaLicenceNumberController.text.trim().toUpperCase()
+          : null,
+      dvlaCheckCode: _dvlaCheckCodeController.text.trim().isNotEmpty
+          ? _dvlaCheckCodeController.text.trim().toUpperCase()
+          : null,
+      dvlaLicenceExpiry: _dvlaLicenceExpiryController.text.trim().isNotEmpty
+          ? _dvlaLicenceExpiryController.text.trim()
           : null,
     );
 
@@ -466,6 +510,55 @@ class _EditProfilePageState extends ConsumerState<_EditProfilePage> {
                   labelText: 'Postcode',
                   prefixIcon: Icon(Icons.pin_outlined),
                   hintText: 'BH1 1AA',
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // DVLA Section Header
+              Text(
+                'UK Driving Licence',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Your DVLA licence number and check code are required for onboarding.',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).textTheme.bodySmall?.color?.withAlpha(179),
+                    ),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _dvlaLicenceNumberController,
+                textCapitalization: TextCapitalization.characters,
+                decoration: const InputDecoration(
+                  labelText: 'DVLA Licence Number',
+                  prefixIcon: Icon(Icons.credit_card_outlined),
+                  hintText: 'MORGA657054SM9IJ',
+                  helperText: '16 characters from your driving licence',
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _dvlaCheckCodeController,
+                textCapitalization: TextCapitalization.characters,
+                maxLength: 8,
+                decoration: const InputDecoration(
+                  labelText: 'DVLA Check Code',
+                  prefixIcon: Icon(Icons.pin_outlined),
+                  hintText: 'ABC123XY',
+                  helperText: 'Get this from gov.uk/view-driving-licence',
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _dvlaLicenceExpiryController,
+                keyboardType: TextInputType.datetime,
+                decoration: const InputDecoration(
+                  labelText: 'Licence Expiry Date',
+                  prefixIcon: Icon(Icons.calendar_today_outlined),
+                  hintText: 'YYYY-MM-DD',
                 ),
               ),
               const SizedBox(height: 32),

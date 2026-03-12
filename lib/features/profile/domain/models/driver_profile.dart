@@ -14,6 +14,11 @@ class DriverProfile {
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
+  // DVLA Licence details (Phase 1 onboarding)
+  final String? dvlaLicenceNumber;
+  final String? dvlaCheckCode;
+  final String? dvlaLicenceExpiry;
+
   const DriverProfile({
     required this.driverId,
     required this.email,
@@ -28,6 +33,9 @@ class DriverProfile {
     required this.status,
     this.createdAt,
     this.updatedAt,
+    this.dvlaLicenceNumber,
+    this.dvlaCheckCode,
+    this.dvlaLicenceExpiry,
   });
 
   String get fullName => '$firstName $lastName';
@@ -51,6 +59,9 @@ class DriverProfile {
       updatedAt: json['updatedAt'] != null
           ? DateTime.tryParse(json['updatedAt'] as String)
           : null,
+      dvlaLicenceNumber: json['dvlaLicenceNumber'] as String?,
+      dvlaCheckCode: json['dvlaCheckCode'] as String?,
+      dvlaLicenceExpiry: json['dvlaLicenceExpiry'] as String?,
     );
   }
 
@@ -67,6 +78,9 @@ class DriverProfile {
       if (dateOfBirth != null) 'dateOfBirth': dateOfBirth,
       if (nationalInsurance != null) 'nationalInsurance': nationalInsurance,
       'status': status,
+      if (dvlaLicenceNumber != null) 'dvlaLicenceNumber': dvlaLicenceNumber,
+      if (dvlaCheckCode != null) 'dvlaCheckCode': dvlaCheckCode,
+      if (dvlaLicenceExpiry != null) 'dvlaLicenceExpiry': dvlaLicenceExpiry,
     };
   }
 
@@ -84,6 +98,9 @@ class DriverProfile {
     String? status,
     DateTime? createdAt,
     DateTime? updatedAt,
+    String? dvlaLicenceNumber,
+    String? dvlaCheckCode,
+    String? dvlaLicenceExpiry,
   }) {
     return DriverProfile(
       driverId: driverId ?? this.driverId,
@@ -99,8 +116,18 @@ class DriverProfile {
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      dvlaLicenceNumber: dvlaLicenceNumber ?? this.dvlaLicenceNumber,
+      dvlaCheckCode: dvlaCheckCode ?? this.dvlaCheckCode,
+      dvlaLicenceExpiry: dvlaLicenceExpiry ?? this.dvlaLicenceExpiry,
     );
   }
+
+  /// Check if DVLA licence details are complete (required for Phase 1)
+  bool get hasDvlaDetails =>
+      dvlaLicenceNumber != null &&
+      dvlaLicenceNumber!.isNotEmpty &&
+      dvlaCheckCode != null &&
+      dvlaCheckCode!.isNotEmpty;
 }
 
 /// Profile update request - only includes editable fields
@@ -113,6 +140,9 @@ class ProfileUpdateRequest {
   final String? city;
   final String? dateOfBirth;
   final String? nationalInsurance;
+  final String? dvlaLicenceNumber;
+  final String? dvlaCheckCode;
+  final String? dvlaLicenceExpiry;
 
   const ProfileUpdateRequest({
     this.firstName,
@@ -123,6 +153,9 @@ class ProfileUpdateRequest {
     this.city,
     this.dateOfBirth,
     this.nationalInsurance,
+    this.dvlaLicenceNumber,
+    this.dvlaCheckCode,
+    this.dvlaLicenceExpiry,
   });
 
   Map<String, dynamic> toJson() {
@@ -135,6 +168,9 @@ class ProfileUpdateRequest {
     if (city != null) map['city'] = city;
     if (dateOfBirth != null) map['dateOfBirth'] = dateOfBirth;
     if (nationalInsurance != null) map['nationalInsurance'] = nationalInsurance;
+    if (dvlaLicenceNumber != null) map['dvlaLicenceNumber'] = dvlaLicenceNumber;
+    if (dvlaCheckCode != null) map['dvlaCheckCode'] = dvlaCheckCode;
+    if (dvlaLicenceExpiry != null) map['dvlaLicenceExpiry'] = dvlaLicenceExpiry;
     return map;
   }
 }

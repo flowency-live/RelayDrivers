@@ -73,22 +73,55 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
 
               // Progress indicator
               _ProgressIndicator(progress: progress),
-              const SizedBox(height: 32),
+              const SizedBox(height: 24),
 
-              // Steps list
+              // Steps list with phases
               Expanded(
-                child: ListView.builder(
-                  itemCount: progress.steps.length,
-                  itemBuilder: (context, index) {
-                    final step = progress.steps[index];
-                    final isActive = step == progress.currentStep;
-                    return _StepCard(
-                      step: step,
-                      stepNumber: index + 1,
-                      isActive: isActive,
-                      onTap: () => context.push(step.route),
-                    );
-                  },
+                child: ListView(
+                  children: [
+                    // Phase 1 Header
+                    _PhaseHeader(
+                      phase: 1,
+                      title: 'Driver Setup',
+                      isComplete: progress.phase1Complete,
+                      isActive: progress.currentPhase == 1,
+                    ),
+                    // Phase 1 Steps
+                    ...progress.stepsForPhase(1).asMap().entries.map((entry) {
+                      final step = entry.value;
+                      final isActive = step == progress.currentStep;
+                      return _StepCard(
+                        step: step,
+                        stepNumber: entry.key + 1,
+                        isActive: isActive,
+                        onTap: () => context.push(step.route),
+                      );
+                    }),
+
+                    const SizedBox(height: 24),
+
+                    // Phase 2 Header
+                    _PhaseHeader(
+                      phase: 2,
+                      title: 'Vehicle Setup',
+                      isComplete: progress.phase2Complete,
+                      isActive: progress.currentPhase == 2,
+                      isLocked: !progress.phase1Complete,
+                    ),
+                    // Phase 2 Steps
+                    ...progress.stepsForPhase(2).asMap().entries.map((entry) {
+                      final step = entry.value;
+                      final isActive = step == progress.currentStep;
+                      final isLocked = !progress.phase1Complete;
+                      return _StepCard(
+                        step: step,
+                        stepNumber: entry.key + 1,
+                        isActive: isActive,
+                        isLocked: isLocked,
+                        onTap: isLocked ? null : () => context.push(step.route),
+                      );
+                    }),
+                  ],
                 ),
               ),
 
@@ -152,20 +185,111 @@ class _ProgressIndicator extends StatelessWidget {
   }
 }
 
+class _PhaseHeader extends StatelessWidget {
+  final int phase;
+  final String title;
+  final bool isComplete;
+  final bool isActive;
+  final bool isLocked;
+
+  const _PhaseHeader({
+    required this.phase,
+    required this.title,
+    required this.isComplete,
+    required this.isActive,
+    this.isLocked = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isComplete
+        ? const Color(0xFF2ECC71)
+        : isActive
+            ? Theme.of(context).colorScheme.primary
+            : isLocked
+                ? Theme.of(context).colorScheme.outline.withAlpha(100)
+                : Theme.of(context).colorScheme.outline;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        children: [
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              color: color.withAlpha(25),
+              shape: BoxShape.circle,
+              border: Border.all(color: color, width: 2),
+            ),
+            child: Center(
+              child: isComplete
+                  ? Icon(Icons.check, color: color, size: 16)
+                  : isLocked
+                      ? Icon(Icons.lock, color: color, size: 14)
+                      : Text(
+                          '$phase',
+                          style: TextStyle(
+                            color: color,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            'Phase $phase: $title',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: isLocked
+                      ? Theme.of(context).textTheme.titleMedium?.color?.withAlpha(100)
+                      : null,
+                ),
+          ),
+          if (isComplete) ...[
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: const Color(0xFF2ECC71).withAlpha(25),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Text(
+                'Complete',
+                style: TextStyle(
+                  color: Color(0xFF2ECC71),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
 class _StepCard extends StatelessWidget {
   final OnboardingStep step;
   final int stepNumber;
   final bool isActive;
-  final VoidCallback onTap;
+  final bool isLocked;
+  final VoidCallback? onTap;
 
   const _StepCard({
     required this.step,
     required this.stepNumber,
     required this.isActive,
+    this.isLocked = false,
     required this.onTap,
   });
 
   Color _getStatusColor(BuildContext context) {
+    if (isLocked) {
+      return Theme.of(context).colorScheme.outline.withAlpha(100);
+    }
     switch (step.status) {
       case OnboardingStepStatus.complete:
         return const Color(0xFF2ECC71);
@@ -190,6 +314,7 @@ class _StepCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final statusColor = _getStatusColor(context);
+    final textAlpha = isLocked ? 100 : 255;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -199,7 +324,7 @@ class _StepCard extends StatelessWidget {
             : Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         child: InkWell(
-          onTap: step.status != OnboardingStepStatus.complete ? onTap : null,
+          onTap: isLocked ? null : onTap,
           borderRadius: BorderRadius.circular(12),
           child: Container(
             padding: const EdgeInsets.all(16),
@@ -208,7 +333,7 @@ class _StepCard extends StatelessWidget {
               border: Border.all(
                 color: isActive
                     ? Theme.of(context).colorScheme.primary
-                    : Theme.of(context).colorScheme.outline.withAlpha(50),
+                    : Theme.of(context).colorScheme.outline.withAlpha(isLocked ? 25 : 50),
                 width: isActive ? 2 : 1,
               ),
             ),
@@ -223,20 +348,26 @@ class _StepCard extends StatelessWidget {
                     shape: BoxShape.circle,
                   ),
                   child: Center(
-                    child: step.status == OnboardingStepStatus.complete
+                    child: isLocked
                         ? Icon(
-                            Icons.check,
+                            Icons.lock_outline,
                             color: statusColor,
-                            size: 24,
+                            size: 20,
                           )
-                        : Text(
-                            '$stepNumber',
-                            style: TextStyle(
-                              color: statusColor,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                            ),
-                          ),
+                        : step.status == OnboardingStepStatus.complete
+                            ? Icon(
+                                Icons.check,
+                                color: statusColor,
+                                size: 24,
+                              )
+                            : Text(
+                                '$stepNumber',
+                                style: TextStyle(
+                                  color: statusColor,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                ),
+                              ),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -259,7 +390,11 @@ class _StepCard extends StatelessWidget {
                                       .titleMedium
                                       ?.color
                                       ?.withAlpha(128)
-                                  : null,
+                                  : Theme.of(context)
+                                      .textTheme
+                                      .titleMedium
+                                      ?.color
+                                      ?.withAlpha(textAlpha),
                             ),
                       ),
                       const SizedBox(height: 4),
@@ -270,7 +405,7 @@ class _StepCard extends StatelessWidget {
                                   .textTheme
                                   .bodySmall
                                   ?.color
-                                  ?.withAlpha(179),
+                                  ?.withAlpha(isLocked ? 100 : 179),
                             ),
                       ),
                     ],
@@ -279,9 +414,11 @@ class _StepCard extends StatelessWidget {
 
                 // Status icon / arrow
                 Icon(
-                  step.status == OnboardingStepStatus.complete
-                      ? _getStatusIcon()
-                      : Icons.chevron_right,
+                  isLocked
+                      ? Icons.lock_outline
+                      : step.status == OnboardingStepStatus.complete
+                          ? _getStatusIcon()
+                          : Icons.chevron_right,
                   color: statusColor,
                 ),
               ],

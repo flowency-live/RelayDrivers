@@ -12,6 +12,7 @@ enum OnboardingStepStatus {
 /// Individual onboarding step
 class OnboardingStep {
   final String id;
+  final int phase;
   final String title;
   final String description;
   final OnboardingStepStatus status;
@@ -19,6 +20,7 @@ class OnboardingStep {
 
   const OnboardingStep({
     required this.id,
+    required this.phase,
     required this.title,
     required this.description,
     required this.status,
@@ -27,6 +29,7 @@ class OnboardingStep {
 
   OnboardingStep copyWith({
     String? id,
+    int? phase,
     String? title,
     String? description,
     OnboardingStepStatus? status,
@@ -34,6 +37,7 @@ class OnboardingStep {
   }) {
     return OnboardingStep(
       id: id ?? this.id,
+      phase: phase ?? this.phase,
       title: title ?? this.title,
       description: description ?? this.description,
       status: status ?? this.status,
@@ -49,6 +53,9 @@ class OnboardingProgress {
   final int totalSteps;
   final bool isComplete;
   final OnboardingStep? currentStep;
+  final int currentPhase;
+  final bool phase1Complete;
+  final bool phase2Complete;
 
   const OnboardingProgress({
     required this.steps,
@@ -56,14 +63,31 @@ class OnboardingProgress {
     required this.totalSteps,
     required this.isComplete,
     this.currentStep,
+    required this.currentPhase,
+    required this.phase1Complete,
+    required this.phase2Complete,
   });
 
   double get progressPercent => totalSteps > 0 ? completedSteps / totalSteps : 0.0;
+
+  /// Get steps for a specific phase
+  List<OnboardingStep> stepsForPhase(int phase) =>
+      steps.where((s) => s.phase == phase).toList();
 }
 
 /// Onboarding service - pure domain logic
 class OnboardingService {
   /// Calculate onboarding progress from profile, vehicles, and documents
+  ///
+  /// 2-Phase onboarding structure:
+  /// Phase 1 - Driver Setup:
+  ///   1. Complete profile with DVLA licence number + check code
+  ///   2. Upload PHV Driver Licence
+  ///
+  /// Phase 2 - Vehicle Setup:
+  ///   3. Add vehicle (VRN triggers DVLA lookup)
+  ///   4. Upload PHV Vehicle Licence
+  ///   5. Upload Hire & Reward Insurance
   OnboardingProgress calculateProgress({
     DriverProfile? profile,
     required List<Vehicle> vehicles,
@@ -71,13 +95,21 @@ class OnboardingService {
   }) {
     final steps = <OnboardingStep>[];
 
-    // Step 1: Complete profile
+    // ============================================================
+    // PHASE 1: Driver Setup
+    // ============================================================
+
+    // Step 1: Complete profile with DVLA details
     final profileComplete = _isProfileComplete(profile);
+    final hasDvlaDetails = profile?.hasDvlaDetails ?? false;
+    final phase1ProfileComplete = profileComplete && hasDvlaDetails;
+
     steps.add(OnboardingStep(
       id: 'profile',
-      title: 'Complete Your Profile',
-      description: 'Add your personal details and contact information',
-      status: profileComplete
+      phase: 1,
+      title: 'Your Details',
+      description: 'Personal info and UK driving licence details',
+      status: phase1ProfileComplete
           ? OnboardingStepStatus.complete
           : profile != null
               ? OnboardingStepStatus.inProgress
@@ -85,79 +117,86 @@ class OnboardingService {
       route: '/profile',
     ));
 
-    // Step 2: Add a vehicle
-    final hasVehicle = vehicles.isNotEmpty;
-    steps.add(OnboardingStep(
-      id: 'vehicle',
-      title: 'Add Your Vehicle',
-      description: 'Register your vehicle with DVLA details',
-      status: hasVehicle
-          ? OnboardingStepStatus.complete
-          : OnboardingStepStatus.incomplete,
-      route: '/vehicles',
-    ));
-
-    // Step 3: Upload driver license
+    // Step 2: Upload PHV Driver Licence
     final hasDriverLicense = documents.any(
       (d) => d.documentType == DocumentType.phvDriverLicense,
     );
     steps.add(OnboardingStep(
-      id: 'driver_license',
-      title: 'PHV Driver License',
-      description: 'Upload your Private Hire Vehicle driver license',
+      id: 'phv_driver_licence',
+      phase: 1,
+      title: 'PHV Driver Licence',
+      description: 'Upload your private hire driver licence',
       status: hasDriverLicense
           ? OnboardingStepStatus.complete
           : OnboardingStepStatus.incomplete,
       route: '/documents',
     ));
 
-    // Step 4: Upload driver insurance
-    final hasDriverInsurance = documents.any(
-      (d) => d.documentType == DocumentType.driverInsurance,
+    // Check Phase 1 completion
+    final phase1Steps = steps.where((s) => s.phase == 1).toList();
+    final phase1Complete = phase1Steps.every(
+      (s) => s.status == OnboardingStepStatus.complete,
+    );
+
+    // ============================================================
+    // PHASE 2: Vehicle Setup
+    // ============================================================
+
+    // Step 3: Add a vehicle (VRN triggers DVLA lookup)
+    final hasVehicle = vehicles.isNotEmpty;
+    steps.add(OnboardingStep(
+      id: 'vehicle',
+      phase: 2,
+      title: 'Add Your Vehicle',
+      description: 'Register vehicle for DVLA tax/MOT check',
+      status: hasVehicle
+          ? OnboardingStepStatus.complete
+          : OnboardingStepStatus.incomplete,
+      route: '/vehicles',
+    ));
+
+    // Step 4: Upload PHV Vehicle Licence
+    final hasVehicleLicense = documents.any(
+      (d) => d.documentType == DocumentType.phvVehicleLicense,
     );
     steps.add(OnboardingStep(
-      id: 'driver_insurance',
-      title: 'Driver Insurance',
-      description: 'Upload proof of your driver insurance',
-      status: hasDriverInsurance
+      id: 'phv_vehicle_licence',
+      phase: 2,
+      title: 'PHV Vehicle Licence',
+      description: 'Upload your vehicle plate/licence',
+      status: hasVehicleLicense
           ? OnboardingStepStatus.complete
           : OnboardingStepStatus.incomplete,
       route: '/documents',
     ));
 
-    // Step 5: Upload vehicle license (if has vehicle)
-    if (hasVehicle) {
-      final hasVehicleLicense = documents.any(
-        (d) => d.documentType == DocumentType.phvVehicleLicense,
-      );
-      steps.add(OnboardingStep(
-        id: 'vehicle_license',
-        title: 'PHV Vehicle License',
-        description: 'Upload your vehicle\'s PHV plate/license',
-        status: hasVehicleLicense
-            ? OnboardingStepStatus.complete
-            : OnboardingStepStatus.incomplete,
-        route: '/documents',
-      ));
+    // Step 5: Upload Hire & Reward Insurance
+    final hasVehicleInsurance = documents.any(
+      (d) => d.documentType == DocumentType.vehicleInsurance,
+    );
+    steps.add(OnboardingStep(
+      id: 'vehicle_insurance',
+      phase: 2,
+      title: 'Hire & Reward Insurance',
+      description: 'Upload private hire insurance certificate',
+      status: hasVehicleInsurance
+          ? OnboardingStepStatus.complete
+          : OnboardingStepStatus.incomplete,
+      route: '/documents',
+    ));
 
-      // Step 6: Upload vehicle insurance (if has vehicle)
-      final hasVehicleInsurance = documents.any(
-        (d) => d.documentType == DocumentType.vehicleInsurance,
-      );
-      steps.add(OnboardingStep(
-        id: 'vehicle_insurance',
-        title: 'Vehicle Insurance',
-        description: 'Upload proof of vehicle insurance',
-        status: hasVehicleInsurance
-            ? OnboardingStepStatus.complete
-            : OnboardingStepStatus.incomplete,
-        route: '/documents',
-      ));
-    }
+    // Check Phase 2 completion
+    final phase2Steps = steps.where((s) => s.phase == 2).toList();
+    final phase2Complete = phase2Steps.every(
+      (s) => s.status == OnboardingStepStatus.complete,
+    );
 
     final completedSteps =
         steps.where((s) => s.status == OnboardingStepStatus.complete).length;
-    final isComplete = completedSteps == steps.length;
+    final isComplete = phase1Complete && phase2Complete;
+
+    // Determine current phase
+    final currentPhase = phase1Complete ? 2 : 1;
 
     // Find first incomplete step
     OnboardingStep? currentStep;
@@ -174,6 +213,9 @@ class OnboardingService {
       totalSteps: steps.length,
       isComplete: isComplete,
       currentStep: currentStep,
+      currentPhase: currentPhase,
+      phase1Complete: phase1Complete,
+      phase2Complete: phase2Complete,
     );
   }
 
