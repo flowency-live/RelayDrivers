@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/auth/application/providers.dart';
 import '../../features/auth/domain/models/driver_user.dart';
+import '../../features/onboarding/application/onboarding_providers.dart';
 import '../../features/auth/presentation/pages/biometric_unlock_page.dart';
 import '../../features/auth/presentation/pages/invite_entry_page.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
@@ -15,6 +16,7 @@ import '../../features/profile/presentation/pages/profile_page.dart';
 import '../../features/vehicles/presentation/pages/vehicles_page.dart';
 import '../../features/documents/presentation/pages/documents_page.dart';
 import '../../features/onboarding/presentation/pages/onboarding_page.dart';
+import '../../features/face_verification/presentation/pages/face_registration_page.dart';
 
 /// App routes
 class AppRoutes {
@@ -30,15 +32,18 @@ class AppRoutes {
   static const String profile = '/profile';
   static const String vehicles = '/vehicles';
   static const String documents = '/documents';
+  static const String faceRegistration = '/face-registration';
   static const String jobs = '/jobs';
 }
 
 /// App router provider
 final appRouterProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateProvider);
+  // Watch onboarding completion to allow dashboard access when complete
+  final isOnboardingComplete = ref.watch(isOnboardingCompleteProvider);
 
   return GoRouter(
-    initialLocation: AppRoutes.splash,
+    // DO NOT set initialLocation - let GoRouter use the browser URL on web
     debugLogDiagnostics: true,
     redirect: (context, state) {
       final isAuthenticated = authState.maybeWhen(
@@ -57,43 +62,62 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         orElse: () => null,
       );
 
-      // If still loading, stay on splash
-      if (isLoading) {
-        return state.matchedLocation == AppRoutes.splash
-            ? null
-            : AppRoutes.splash;
+      // Check current location and query params
+      final currentPath = state.matchedLocation;
+      final hasInviteCode = state.uri.queryParameters.containsKey('code');
+
+      // Define route types
+      final isInviteRoute = currentPath == AppRoutes.inviteEntry;
+      final isLoginRoute = currentPath == AppRoutes.login;
+      final isPhoneLoginRoute = currentPath == AppRoutes.phoneLogin;
+      final isBiometricRoute = currentPath == AppRoutes.biometricUnlock;
+      final isRegisterRoute = currentPath == AppRoutes.register;
+      final isSplashRoute = currentPath == AppRoutes.splash;
+      final isMagicLinkRoute = currentPath.startsWith('/auth/verify');
+      final isOnboardingRoute = currentPath == AppRoutes.onboarding;
+      final isAuthRoute = isInviteRoute || isLoginRoute || isPhoneLoginRoute ||
+                          isBiometricRoute || isRegisterRoute || isMagicLinkRoute;
+
+      // CRITICAL: If we have an invite code in URL, NEVER redirect away
+      // Let the invite page handle it regardless of auth state
+      if (isInviteRoute && hasInviteCode) {
+        return null; // Stay on invite page with the code
       }
 
-      // If not authenticated, redirect to invite entry (unless on public auth pages)
-      final isInviteRoute = state.matchedLocation == AppRoutes.inviteEntry;
-      final isLoginRoute = state.matchedLocation == AppRoutes.login;
-      final isPhoneLoginRoute = state.matchedLocation == AppRoutes.phoneLogin;
-      final isBiometricRoute = state.matchedLocation == AppRoutes.biometricUnlock;
-      final isRegisterRoute = state.matchedLocation == AppRoutes.register;
-      final isSplashRoute = state.matchedLocation == AppRoutes.splash;
-      final isMagicLinkRoute = state.matchedLocation.startsWith('/auth/verify');
-      final isOnboardingRoute = state.matchedLocation == AppRoutes.onboarding;
-      final isAuthRoute = isInviteRoute || isLoginRoute || isPhoneLoginRoute || isBiometricRoute || isRegisterRoute || isMagicLinkRoute;
+      // If still loading auth state, show splash (but we already handled invite+code above)
+      if (isLoading) {
+        return isSplashRoute ? null : AppRoutes.splash;
+      }
 
+      // Not authenticated
       if (!isAuthenticated) {
-        // Allow access to auth pages without auth
+        // Allow access to auth pages without authentication
         if (isAuthRoute) return null;
-        // Default to invite entry (invite-only onboarding)
+
+        // Redirect everything else to invite entry
         return AppRoutes.inviteEntry;
       }
 
-      // If authenticated with onboarding status, redirect to onboarding
-      // (unless already on onboarding or sub-pages for completing onboarding)
+      // Authenticated - check onboarding status
       final isOnboardingStatus = userStatus == DriverStatus.onboarding;
-      final isOnboardingSubPage = state.matchedLocation == AppRoutes.profile ||
-          state.matchedLocation == AppRoutes.vehicles ||
-          state.matchedLocation == AppRoutes.documents;
+      final isOnboardingSubPage = currentPath == AppRoutes.profile ||
+          currentPath == AppRoutes.vehicles ||
+          currentPath == AppRoutes.documents ||
+          currentPath == AppRoutes.faceRegistration;
+      final isHomeRoute = currentPath == AppRoutes.home;
 
-      if (isOnboardingStatus && !isOnboardingRoute && !isOnboardingSubPage) {
+      // If onboarding status but onboarding is COMPLETE locally, allow access to home
+      // This handles the case where all steps are done but backend hasn't updated status yet
+      if (isOnboardingStatus && isOnboardingComplete && isHomeRoute) {
+        return null; // Allow access to home
+      }
+
+      // If onboarding status and not complete, keep user in onboarding flow
+      if (isOnboardingStatus && !isOnboardingComplete && !isOnboardingRoute && !isOnboardingSubPage) {
         return AppRoutes.onboarding;
       }
 
-      // If authenticated and on auth pages, redirect appropriately
+      // If authenticated and on auth/splash pages, redirect to appropriate home
       if (isAuthRoute || isSplashRoute) {
         return isOnboardingStatus ? AppRoutes.onboarding : AppRoutes.home;
       }
@@ -155,6 +179,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.documents,
         builder: (context, state) => const DocumentsPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.faceRegistration,
+        builder: (context, state) => const FaceRegistrationPage(),
       ),
       GoRoute(
         path: AppRoutes.jobs,
