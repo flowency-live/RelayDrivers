@@ -1,3 +1,56 @@
+/// Vehicle photo types
+enum VehiclePhotoType {
+  exteriorFront('exterior_front', 'Front'),
+  exteriorRear('exterior_rear', 'Rear'),
+  exteriorSide('exterior_side', 'Side'),
+  interior('interior', 'Interior'),
+  dashboard('dashboard', 'Dashboard');
+
+  final String value;
+  final String label;
+  const VehiclePhotoType(this.value, this.label);
+
+  static VehiclePhotoType fromString(String value) {
+    return VehiclePhotoType.values.firstWhere(
+      (e) => e.value == value,
+      orElse: () => VehiclePhotoType.exteriorFront,
+    );
+  }
+}
+
+/// Vehicle photo model
+class VehiclePhoto {
+  final String photoId;
+  final String url;
+  final VehiclePhotoType type;
+  final String uploadedAt;
+
+  const VehiclePhoto({
+    required this.photoId,
+    required this.url,
+    required this.type,
+    required this.uploadedAt,
+  });
+
+  factory VehiclePhoto.fromJson(Map<String, dynamic> json) {
+    return VehiclePhoto(
+      photoId: json['photoId'] as String,
+      url: json['url'] as String,
+      type: VehiclePhotoType.fromString(json['type'] as String? ?? 'exterior_front'),
+      uploadedAt: json['uploadedAt'] as String,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'photoId': photoId,
+      'url': url,
+      'type': type.value,
+      'uploadedAt': uploadedAt,
+    };
+  }
+}
+
 /// Vehicle model representing a driver's vehicle
 class Vehicle {
   final String vrn;
@@ -15,6 +68,7 @@ class Vehicle {
   final bool canOperate;
   final String? lastApiCheck;
   final String? createdAt;
+  final List<VehiclePhoto> photos;
 
   const Vehicle({
     required this.vrn,
@@ -32,6 +86,7 @@ class Vehicle {
     this.canOperate = false,
     this.lastApiCheck,
     this.createdAt,
+    this.photos = const [],
   });
 
   factory Vehicle.fromJson(Map<String, dynamic> json) {
@@ -54,6 +109,10 @@ class Vehicle {
       canOperate: json['canOperate'] as bool? ?? false,
       lastApiCheck: json['lastApiCheck'] as String?,
       createdAt: json['createdAt'] as String?,
+      photos: (json['photos'] as List<dynamic>?)
+              ?.map((e) => VehiclePhoto.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
     );
   }
 
@@ -74,6 +133,7 @@ class Vehicle {
       'canOperate': canOperate,
       if (lastApiCheck != null) 'lastApiCheck': lastApiCheck,
       if (createdAt != null) 'createdAt': createdAt,
+      'photos': photos.map((p) => p.toJson()).toList(),
     };
   }
 
@@ -150,6 +210,7 @@ class Vehicle {
     bool? canOperate,
     String? lastApiCheck,
     String? createdAt,
+    List<VehiclePhoto>? photos,
   }) {
     return Vehicle(
       vrn: vrn ?? this.vrn,
@@ -167,6 +228,7 @@ class Vehicle {
       canOperate: canOperate ?? this.canOperate,
       lastApiCheck: lastApiCheck ?? this.lastApiCheck,
       createdAt: createdAt ?? this.createdAt,
+      photos: photos ?? this.photos,
     );
   }
 

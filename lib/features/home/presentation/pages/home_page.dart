@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/application/providers.dart';
+import '../../../auth/domain/models/driver_user.dart' as driver_user;
 import '../../../profile/application/profile_providers.dart';
+import '../../../notifications/presentation/widgets/notification_bell.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/widgets/pwa_install_banner.dart';
+import '../widgets/operator_selector.dart';
 import '../widgets/status_info_card.dart';
 
 /// Home page - main dashboard for drivers
@@ -16,6 +19,19 @@ class HomePage extends ConsumerStatefulWidget {
 }
 
 class _HomePageState extends ConsumerState<HomePage> {
+  /// Get display status from user model (handles both legacy and new architecture)
+  String _getDisplayStatus(driver_user.DriverUser user) {
+    // New architecture: derive status from operators
+    if (user.operators.isNotEmpty) {
+      if (user.hasActiveOperators) return 'active';
+      if (user.isOnboarding) return 'onboarding';
+      if (user.isPending) return 'pending';
+      return 'pending';
+    }
+    // Legacy fallback
+    return user.status?.value ?? 'pending';
+  }
+
   @override
   void initState() {
     super.initState();
@@ -41,6 +57,7 @@ class _HomePageState extends ConsumerState<HomePage> {
       appBar: AppBar(
         title: const Text('Relay Drivers'),
         actions: [
+          const NotificationBellWithPolling(),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
@@ -56,6 +73,9 @@ class _HomePageState extends ConsumerState<HomePage> {
           children: [
             // PWA Install Banner
             const PwaInstallBanner(),
+
+            // Operator Selector (only shows if driver has multiple operators)
+            const OperatorSelector(),
 
             // Greeting
             Text(
@@ -100,11 +120,11 @@ class _HomePageState extends ConsumerState<HomePage> {
                   onTap: () => context.push(AppRoutes.documents),
                 ),
                 _QuickActionCard(
-                  icon: Icons.work,
-                  title: 'Jobs',
-                  subtitle: 'View available jobs',
-                  color: const Color(0xFF9B59B6),
-                  onTap: () => context.push(AppRoutes.jobs),
+                  icon: Icons.business,
+                  title: 'My Operators',
+                  subtitle: 'Manage operators',
+                  color: const Color(0xFF3498DB),
+                  onTap: () => context.push(AppRoutes.myOperators),
                 ),
               ],
             ),
@@ -113,7 +133,7 @@ class _HomePageState extends ConsumerState<HomePage> {
 
             // Status card with tenant contact info
             StatusInfoCard(
-              status: user.status.value,
+              status: _getDisplayStatus(user),
               companyName: profile?.tenant?.companyName,
               supportEmail: profile?.tenant?.supportEmail,
               supportPhone: profile?.tenant?.supportPhone,
