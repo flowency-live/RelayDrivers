@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../auth/application/providers.dart';
+import '../../../face_verification/application/face_providers.dart';
 import '../../application/onboarding_providers.dart';
 import '../../domain/services/onboarding_service.dart';
 
@@ -23,8 +24,9 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   }
 
   Future<void> _loadData() async {
-    // Trigger loading of profile, vehicles, and documents
+    // Trigger loading of profile, vehicles, documents, and face status
     // These are already loaded by their respective pages, but ensure they're loaded
+    ref.read(faceVerificationStateProvider.notifier).loadStatus();
   }
 
   @override
@@ -113,6 +115,32 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                       final step = entry.value;
                       final isActive = step == progress.currentStep;
                       final isLocked = !progress.phase1Complete;
+                      return _StepCard(
+                        step: step,
+                        stepNumber: entry.key + 1,
+                        isActive: isActive,
+                        isLocked: isLocked,
+                        onTap: isLocked ? null : () => context.push(step.route),
+                      );
+                    }),
+
+                    const SizedBox(height: 24),
+
+                    // Phase 3: Final Verification Header
+                    _PhaseHeader(
+                      phase: 3,
+                      title: 'Identity Verification',
+                      isComplete: progress.stepsForPhase(3).every(
+                        (s) => s.status == OnboardingStepStatus.complete,
+                      ),
+                      isActive: progress.currentPhase == 3,
+                      isLocked: !progress.phase2Complete,
+                    ),
+                    // Phase 3 Steps (face verification)
+                    ...progress.stepsForPhase(3).asMap().entries.map((entry) {
+                      final step = entry.value;
+                      final isActive = step == progress.currentStep;
+                      final isLocked = !progress.phase2Complete;
                       return _StepCard(
                         step: step,
                         stepNumber: entry.key + 1,

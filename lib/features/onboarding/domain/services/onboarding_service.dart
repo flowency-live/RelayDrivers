@@ -77,9 +77,9 @@ class OnboardingProgress {
 
 /// Onboarding service - pure domain logic
 class OnboardingService {
-  /// Calculate onboarding progress from profile, vehicles, and documents
+  /// Calculate onboarding progress from profile, vehicles, documents, and face status
   ///
-  /// 2-Phase onboarding structure:
+  /// 2-Phase onboarding structure + Final step:
   /// Phase 1 - Driver Setup:
   ///   1. Complete profile with DVLA licence number + check code
   ///   2. Upload PHV Driver Licence
@@ -88,10 +88,14 @@ class OnboardingService {
   ///   3. Add vehicle (VRN triggers DVLA lookup)
   ///   4. Upload PHV Vehicle Licence
   ///   5. Upload Hire & Reward Insurance
+  ///
+  /// Final Step:
+  ///   6. Verify identity with face registration
   OnboardingProgress calculateProgress({
     DriverProfile? profile,
     required List<Vehicle> vehicles,
     required List<DriverDocument> documents,
+    bool hasFaceRegistered = false,
   }) {
     final steps = <OnboardingStep>[];
 
@@ -191,12 +195,35 @@ class OnboardingService {
       (s) => s.status == OnboardingStepStatus.complete,
     );
 
+    // ============================================================
+    // FINAL STEP: Identity Verification (Phase 3)
+    // ============================================================
+
+    // Step 6: Face verification (only shown after Phase 2 complete)
+    steps.add(OnboardingStep(
+      id: 'face_verification',
+      phase: 3,
+      title: 'Verify Your Identity',
+      description: 'Take a selfie for identity verification',
+      status: hasFaceRegistered
+          ? OnboardingStepStatus.complete
+          : OnboardingStepStatus.incomplete,
+      route: '/face-registration',
+    ));
+
     final completedSteps =
         steps.where((s) => s.status == OnboardingStepStatus.complete).length;
-    final isComplete = phase1Complete && phase2Complete;
+    final isComplete = phase1Complete && phase2Complete && hasFaceRegistered;
 
     // Determine current phase
-    final currentPhase = phase1Complete ? 2 : 1;
+    int currentPhase;
+    if (!phase1Complete) {
+      currentPhase = 1;
+    } else if (!phase2Complete) {
+      currentPhase = 2;
+    } else {
+      currentPhase = 3;
+    }
 
     // Find first incomplete step
     OnboardingStep? currentStep;

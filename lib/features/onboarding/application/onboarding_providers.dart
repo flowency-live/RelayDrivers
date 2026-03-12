@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../profile/application/profile_providers.dart';
 import '../../vehicles/application/vehicle_providers.dart';
 import '../../documents/application/document_providers.dart';
+import '../../face_verification/application/face_providers.dart';
 import '../domain/services/onboarding_service.dart';
 
 /// Onboarding service provider
@@ -15,11 +16,13 @@ final onboardingProgressProvider = Provider<OnboardingProgress>((ref) {
   final profile = ref.watch(currentProfileProvider);
   final vehicles = ref.watch(vehicleListProvider);
   final documents = ref.watch(documentListProvider);
+  final hasFaceRegistered = ref.watch(hasFaceRegisteredProvider);
 
   return service.calculateProgress(
     profile: profile,
     vehicles: vehicles,
     documents: documents,
+    hasFaceRegistered: hasFaceRegistered,
   );
 });
 
