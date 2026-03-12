@@ -67,14 +67,64 @@ class AuthService {
     return name.trim().isNotEmpty;
   }
 
+  /// URL-safe alphabet excluding confusing characters (0, O, I, l)
+  /// 33 characters: A-N, P-Z, 1-9 (no 0, O, I, l)
+  /// MUST match INVITE_CODE_ALPHABET in backend invite-codes.mjs
+  static const String _inviteCodeAlphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ123456789';
+
+  /// Validate invite code format (DRV-XXXXXXXX)
+  /// Uses alphabet-based validation (no regex) - single source of truth.
+  bool isValidInviteCode(String code) {
+    final trimmed = code.trim().toUpperCase();
+
+    // Check prefix
+    if (!trimmed.startsWith('DRV-')) return false;
+
+    // Check total length (DRV- is 4 chars + 8 random = 12)
+    if (trimmed.length != 12) return false;
+
+    // Check each character in the random part is in the alphabet
+    final randomPart = trimmed.substring(4);
+    for (final char in randomPart.split('')) {
+      if (!_inviteCodeAlphabet.contains(char)) return false;
+    }
+
+    return true;
+  }
+
   /// Check if driver can access the app based on status
+  /// v4.0: Uses new driver-owned architecture with operators array
   bool canAccessApp(DriverUser user) {
+    // New architecture: check if driver has active operators or is onboarding
+    if (user.operators.isNotEmpty) {
+      return user.hasActiveOperators || user.isOnboarding;
+    }
+    // Legacy fallback for backward compatibility during migration
     return user.status == DriverStatus.active ||
         user.status == DriverStatus.onboarding;
   }
 
+  /// Check if driver has multiple operators (for showing operator selector)
+  bool hasMultipleOperators(DriverUser user) {
+    return user.operators.where((op) => op.isActive).length > 1;
+  }
+
   /// Determine onboarding step based on user status
+  /// v4.0: Updated for driver-owned architecture
   OnboardingStep getOnboardingStep(DriverUser user) {
+    // New architecture: check operators array first
+    if (user.operators.isNotEmpty) {
+      if (user.isPending) {
+        return OnboardingStep.awaitingApproval;
+      }
+      if (user.isOnboarding) {
+        return OnboardingStep.profileSetup;
+      }
+      if (user.hasActiveOperators) {
+        return OnboardingStep.complete;
+      }
+    }
+    // Legacy fallback
     if (user.status == DriverStatus.pending) {
       return OnboardingStep.awaitingApproval;
     }
