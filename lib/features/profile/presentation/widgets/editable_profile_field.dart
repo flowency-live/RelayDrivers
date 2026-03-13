@@ -36,7 +36,6 @@ class _EditableProfileFieldState extends State<EditableProfileField> {
   bool _isEditing = false;
   bool _isSaving = false;
   late TextEditingController _controller;
-  final _formKey = GlobalKey<FormFieldState<String>>();
   String? _errorText;
 
   @override

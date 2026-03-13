@@ -205,7 +205,7 @@ class OnboardingWizardNotifier extends StateNotifier<OnboardingWizardState> {
 
       // Load documents data
       final docState = _ref.read(documentStateProvider);
-      if (docState is DocumentsLoaded) {
+      if (docState is DocumentLoaded) {
         for (final doc in docState.documents) {
           switch (doc.documentType) {
             case DocumentType.phvDriverLicense:
@@ -243,14 +243,12 @@ class OnboardingWizardNotifier extends StateNotifier<OnboardingWizardState> {
       }
 
       // Load face status
-      final faceState = _ref.read(faceStatusProvider);
-      faceState.whenData((status) {
-        if (status.isRegistered) {
-          state = state.copyWith(
-            data: state.data.copyWith(faceVerified: true),
-          );
-        }
-      });
+      final faceStatus = _ref.read(faceStatusProvider);
+      if (faceStatus != null && faceStatus.hasRegisteredFace) {
+        state = state.copyWith(
+          data: state.data.copyWith(faceVerified: true),
+        );
+      }
 
       // Determine current step based on existing data
       _updateCurrentStep();

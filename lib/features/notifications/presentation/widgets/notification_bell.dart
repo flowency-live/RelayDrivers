@@ -94,7 +94,7 @@ class _NotificationBellWithPollingState
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     return const NotificationBell();
   }
 }
