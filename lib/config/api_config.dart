@@ -43,4 +43,9 @@ class ApiConfig {
 
   // Driver Jobs endpoints (Phase 2)
   static const String jobs = '/driver/jobs';
+
+  // Driver Notifications endpoints
+  static const String notifications = '/driver/notifications';
+  static const String notificationsUnreadCount = '/driver/notifications/unread-count';
+  static const String notificationsReadAll = '/driver/notifications/read-all';
 }

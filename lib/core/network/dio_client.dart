@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../config/api_config.dart';
@@ -14,6 +16,7 @@ class DioClient {
 
   static const String accessTokenKey = 'access_token';
   static const String refreshTokenKey = 'refresh_token';
+  static const String activeOperatorKey = 'active_operator';
 
   /// Set callback for when authentication is invalidated
   void setAuthInvalidatedCallback(AuthInvalidatedCallback callback) {
@@ -54,6 +57,12 @@ class DioClient {
     final token = await _secureStorage.read(key: accessTokenKey);
     if (token != null) {
       options.headers['Authorization'] = 'Bearer $token';
+
+      // Add X-Operator-Id header from stored activeOperator or JWT payload
+      final operatorId = await _getActiveOperatorId(token);
+      if (operatorId != null) {
+        options.headers['X-Operator-Id'] = operatorId;
+      }
     }
     // Add X-Tenant-Id for dev/test mode (required by backend for tenant resolution)
     final tenantId = currentEnvironment.tenantId;
@@ -61,6 +70,37 @@ class DioClient {
       options.headers['X-Tenant-Id'] = tenantId;
     }
     handler.next(options);
+  }
+
+  /// Get the active operator ID from stored value or decode from JWT
+  Future<String?> _getActiveOperatorId(String token) async {
+    // First check if we have it stored (faster)
+    final stored = await _secureStorage.read(key: activeOperatorKey);
+    if (stored != null) {
+      return stored;
+    }
+
+    // Fall back to decoding from JWT payload
+    try {
+      final parts = token.split('.');
+      if (parts.length != 3) return null;
+
+      // Decode JWT payload (base64url encoded)
+      final payload = parts[1];
+      final normalized = base64Url.normalize(payload);
+      final decoded = utf8.decode(base64Url.decode(normalized));
+      final Map<String, dynamic> data = jsonDecode(decoded);
+
+      final activeOperator = data['activeOperator'] as String?;
+      if (activeOperator != null) {
+        // Cache it for future requests
+        await _secureStorage.write(key: activeOperatorKey, value: activeOperator);
+      }
+      return activeOperator;
+    } catch (e) {
+      // JWT decode failed, return null
+      return null;
+    }
   }
 
   Future<void> _handleTokenExpiry(
@@ -117,12 +157,22 @@ class DioClient {
 
   Future<Response<dynamic>> _retry(RequestOptions requestOptions) async {
     final token = await _secureStorage.read(key: accessTokenKey);
+    final headers = {
+      ...requestOptions.headers,
+      'Authorization': 'Bearer $token',
+    };
+
+    // Re-add X-Operator-Id header for retry
+    if (token != null) {
+      final operatorId = await _getActiveOperatorId(token);
+      if (operatorId != null) {
+        headers['X-Operator-Id'] = operatorId;
+      }
+    }
+
     final options = Options(
       method: requestOptions.method,
-      headers: {
-        ...requestOptions.headers,
-        'Authorization': 'Bearer $token',
-      },
+      headers: headers,
     );
     return _dio.request(
       requestOptions.path,
@@ -145,6 +195,17 @@ class DioClient {
   Future<void> clearTokens() async {
     await _secureStorage.delete(key: accessTokenKey);
     await _secureStorage.delete(key: refreshTokenKey);
+    await _secureStorage.delete(key: activeOperatorKey);
+  }
+
+  /// Update the active operator (when user switches operators)
+  Future<void> setActiveOperator(String operatorId) async {
+    await _secureStorage.write(key: activeOperatorKey, value: operatorId);
+  }
+
+  /// Get the currently active operator ID
+  Future<String?> getActiveOperator() async {
+    return await _secureStorage.read(key: activeOperatorKey);
   }
 
   Future<bool> hasValidToken() async {

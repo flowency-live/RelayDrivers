@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../auth/application/providers.dart';
 import '../domain/models/vehicle.dart';
@@ -128,6 +129,78 @@ class VehicleNotifier extends StateNotifier<VehicleState> {
     } catch (e) {
       // Keep current state on refresh failure
       return false;
+    }
+  }
+
+  /// Upload a photo for a vehicle
+  Future<VehiclePhoto?> uploadVehiclePhoto({
+    required String vrn,
+    required VehiclePhotoType photoType,
+    required Uint8List photoBytes,
+    required String contentType,
+    Function(double)? onProgress,
+  }) async {
+    try {
+      final photo = await _repository.uploadVehiclePhoto(
+        vrn: vrn,
+        photoType: photoType,
+        photoBytes: photoBytes,
+        contentType: contentType,
+        onProgress: onProgress,
+      );
+
+      // Update local state with new photo
+      final currentState = state;
+      if (currentState is VehicleLoaded) {
+        final updatedVehicles = currentState.vehicles.map((v) {
+          if (v.vrn == vrn) {
+            return v.copyWith(photos: [...v.photos, photo]);
+          }
+          return v;
+        }).toList();
+        state = VehicleLoaded(updatedVehicles);
+      }
+
+      return photo;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Delete a photo from a vehicle
+  Future<bool> deleteVehiclePhoto({
+    required String vrn,
+    required String photoId,
+  }) async {
+    try {
+      await _repository.deleteVehiclePhoto(vrn: vrn, photoId: photoId);
+
+      // Update local state
+      final currentState = state;
+      if (currentState is VehicleLoaded) {
+        final updatedVehicles = currentState.vehicles.map((v) {
+          if (v.vrn == vrn) {
+            return v.copyWith(
+              photos: v.photos.where((p) => p.photoId != photoId).toList(),
+            );
+          }
+          return v;
+        }).toList();
+        state = VehicleLoaded(updatedVehicles);
+      }
+
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Get photos for a vehicle
+  Future<List<VehiclePhoto>> getVehiclePhotos(String vrn) async {
+    try {
+      return await _repository.getVehiclePhotos(vrn);
+    } catch (e) {
+      return [];
     }
   }
 

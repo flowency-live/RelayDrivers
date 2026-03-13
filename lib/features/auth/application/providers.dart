@@ -610,11 +610,13 @@ class InviteAuthNotifier extends StateNotifier<InviteAuthState> {
 
   /// Verify invite code and get driver info
   Future<void> verifyInvite(String code) async {
-    // Validate code format
     final trimmedCode = code.trim().toUpperCase();
-    if (!RegExp(r'^DRV-[A-Z2-9]{8}$').hasMatch(trimmedCode)) {
+    print('[InviteAuth] verifyInvite called with code: $trimmedCode');
+
+    // Only check for empty - let the API validate the format
+    if (trimmedCode.isEmpty) {
       state = const InviteAuthError(
-        message: 'Invalid invite code format. Expected DRV-XXXXXXXX',
+        message: 'Please enter an invite code',
         isExpired: false,
         isUsed: false,
       );
@@ -624,7 +626,9 @@ class InviteAuthNotifier extends StateNotifier<InviteAuthState> {
     state = InviteAuthVerifying(code: trimmedCode);
 
     try {
+      print('[InviteAuth] Calling repository.verifyInvite...');
       final response = await _repository.verifyInvite(trimmedCode);
+      print('[InviteAuth] Response received: firstName=${response.firstName}, lastName=${response.lastName}');
 
       state = InviteAuthVerified(
         code: trimmedCode,
@@ -633,7 +637,9 @@ class InviteAuthNotifier extends StateNotifier<InviteAuthState> {
         maskedPhone: response.maskedPhone,
         tenantId: response.tenantId,
       );
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('[InviteAuth] ERROR: $e');
+      print('[InviteAuth] Stack: $stackTrace');
       final error = _parseInviteError(e);
       state = InviteAuthError(
         message: error.message,

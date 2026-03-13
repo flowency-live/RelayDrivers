@@ -44,8 +44,16 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
 
     // If onboarding is complete, show completion screen briefly then redirect
     if (progress.isComplete) {
+      // Check if this is an existing driver joining a new operator
+      final isExistingDriverNewOperator = user.hasCompletedOnboardingBefore &&
+          user.operators.any((op) => op.isInvited);
+
       return _CompletionScreen(
         onContinue: () => context.go(AppRoutes.home),
+        isExistingDriver: isExistingDriverNewOperator,
+        newOperatorName: isExistingDriverNewOperator
+            ? user.operators.firstWhere((op) => op.isInvited).tenantId
+            : null,
       );
     }
 
@@ -72,6 +80,13 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                           ?.withAlpha(179),
                     ),
               ),
+
+              // Show banner for existing drivers with partial progress
+              if (user.hasCompletedOnboardingBefore && progress.completedSteps > 0) ...[
+                const SizedBox(height: 16),
+                _ExistingDataBanner(completedSteps: progress.completedSteps),
+              ],
+
               const SizedBox(height: 24),
 
               // Progress indicator
@@ -168,6 +183,62 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _ExistingDataBanner extends StatelessWidget {
+  final int completedSteps;
+
+  const _ExistingDataBanner({required this.completedSteps});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF3498DB).withAlpha(25),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: const Color(0xFF3498DB).withAlpha(50),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: const BoxDecoration(
+              color: Color(0xFF3498DB),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.flash_on,
+              color: Colors.white,
+              size: 16,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Data detected from your profile',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF3498DB),
+                      ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '$completedSteps step${completedSteps > 1 ? 's' : ''} already complete. Just verify the remaining items.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -461,11 +532,28 @@ class _StepCard extends StatelessWidget {
 
 class _CompletionScreen extends StatelessWidget {
   final VoidCallback onContinue;
+  final bool isExistingDriver;
+  final String? newOperatorName;
 
-  const _CompletionScreen({required this.onContinue});
+  const _CompletionScreen({
+    required this.onContinue,
+    this.isExistingDriver = false,
+    this.newOperatorName,
+  });
 
   @override
   Widget build(BuildContext context) {
+    // Different messaging for existing drivers joining new operator
+    final title = isExistingDriver
+        ? 'Welcome Back!'
+        : 'You\'re All Set!';
+
+    final message = isExistingDriver
+        ? 'Your existing profile and documents have been shared with $newOperatorName. '
+            'They\'ll review your details and let you know when you\'re approved.'
+        : 'Your profile is complete and ready for review. '
+            'You\'ll be notified once your documents have been verified.';
+
     return Scaffold(
       body: SafeArea(
         child: Padding(
@@ -484,16 +572,16 @@ class _CompletionScreen extends StatelessWidget {
                   color: const Color(0xFF2ECC71).withAlpha(25),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
-                  Icons.check_circle,
-                  color: Color(0xFF2ECC71),
+                child: Icon(
+                  isExistingDriver ? Icons.person_add : Icons.check_circle,
+                  color: const Color(0xFF2ECC71),
                   size: 80,
                 ),
               ),
               const SizedBox(height: 32),
 
               Text(
-                'You\'re All Set!',
+                title,
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -502,8 +590,7 @@ class _CompletionScreen extends StatelessWidget {
               const SizedBox(height: 16),
 
               Text(
-                'Your profile is complete and ready for review. '
-                'You\'ll be notified once your documents have been verified.',
+                message,
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                       color: Theme.of(context)
                           .textTheme
@@ -513,6 +600,34 @@ class _CompletionScreen extends StatelessWidget {
                     ),
                 textAlign: TextAlign.center,
               ),
+
+              // Show info about data reuse for existing drivers
+              if (isExistingDriver) ...[
+                const SizedBox(height: 24),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary.withAlpha(25),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Your documents are yours. You control which operators can see them.',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+
               const Spacer(),
 
               SizedBox(

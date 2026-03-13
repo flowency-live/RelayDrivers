@@ -172,11 +172,18 @@ class AuthRepository {
 
   /// Verify invite code and get driver info (pre-claim step)
   Future<InviteVerifyResponse> verifyInvite(String code) async {
-    final response = await _dioClient.dio.post(
-      ApiConfig.authInviteVerify,
-      data: {'code': code},
-    );
-    return InviteVerifyResponse.fromJson(response.data as Map<String, dynamic>);
+    print('[AuthRepository] verifyInvite: POST ${ApiConfig.authInviteVerify} with code=$code');
+    try {
+      final response = await _dioClient.dio.post(
+        ApiConfig.authInviteVerify,
+        data: {'code': code},
+      );
+      print('[AuthRepository] verifyInvite response: ${response.statusCode} - ${response.data}');
+      return InviteVerifyResponse.fromJson(response.data as Map<String, dynamic>);
+    } catch (e) {
+      print('[AuthRepository] verifyInvite ERROR: $e');
+      rethrow;
+    }
   }
 
   /// Claim invite with OTP verification

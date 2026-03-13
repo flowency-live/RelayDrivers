@@ -45,5 +45,5 @@ app.*.map.json
 /android/app/release
 .firebase/
 
-# API Keys (never commit)
-lib/config/api_keys.dart
+# API Keys are now injected at build time via --dart-define
+# No secrets in this file anymore

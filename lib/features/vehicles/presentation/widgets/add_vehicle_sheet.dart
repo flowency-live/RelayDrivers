@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/widgets/uk_number_plate_input.dart';
 import '../../application/vehicle_providers.dart';
 import '../../domain/models/vehicle.dart';
 
@@ -148,61 +149,19 @@ class _AddVehicleSheetState extends ConsumerState<AddVehicleSheet> {
             // VRN input form
             Form(
               key: _formKey,
-              child: TextFormField(
+              child: UKNumberPlateInput(
                 controller: _vrnController,
-                textCapitalization: TextCapitalization.characters,
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9 ]')),
-                  UpperCaseTextFormatter(),
-                ],
-                decoration: InputDecoration(
-                  labelText: 'Registration Number',
-                  hintText: 'e.g. AB12 CDE',
-                  prefixIcon: const Icon(Icons.directions_car_outlined),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a registration number';
+                errorText: _error,
+                enabled: !_isLookingUp,
+                isLoading: _isLookingUp,
+                onLookup: _lookupVehicle,
+                onChanged: (_) {
+                  if (_error != null) {
+                    setState(() => _error = null);
                   }
-                  if (!_isValidVrn(value)) {
-                    return 'Please enter a valid UK registration number';
-                  }
-                  return null;
                 },
-                onFieldSubmitted: (_) => _lookupVehicle(),
               ),
             ),
-
-            if (_error != null) ...[
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.error.withAlpha(25),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.error_outline,
-                      color: Theme.of(context).colorScheme.error,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        _error!,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.error,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
 
             const SizedBox(height: 24),
             ElevatedButton(

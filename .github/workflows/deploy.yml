@@ -49,7 +49,7 @@ jobs:
         run: flutter pub get
 
       - name: Build web release
-        run: flutter build web --release --base-href "/"
+        run: flutter build web --release --base-href "/" --dart-define=EPOSTCODE_API_KEY=${{ secrets.EPOSTCODE_API_KEY }}
 
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4

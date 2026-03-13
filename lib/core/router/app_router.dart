@@ -14,9 +14,13 @@ import '../../features/auth/presentation/pages/splash_page.dart';
 import '../../features/home/presentation/pages/home_page.dart';
 import '../../features/profile/presentation/pages/profile_page.dart';
 import '../../features/vehicles/presentation/pages/vehicles_page.dart';
+import '../../features/vehicles/presentation/pages/vehicle_detail_page.dart';
 import '../../features/documents/presentation/pages/documents_page.dart';
-import '../../features/onboarding/presentation/pages/onboarding_page.dart';
+import '../../features/notifications/presentation/pages/notifications_page.dart';
+import '../../features/onboarding/presentation/pages/onboarding_wizard_page.dart';
 import '../../features/face_verification/presentation/pages/face_registration_page.dart';
+import '../../features/profile/presentation/pages/my_operators_page.dart';
+import '../../features/documents/presentation/pages/share_document_page.dart';
 
 /// App routes
 class AppRoutes {
@@ -34,6 +38,12 @@ class AppRoutes {
   static const String documents = '/documents';
   static const String faceRegistration = '/face-registration';
   static const String jobs = '/jobs';
+  static const String myOperators = '/my-operators';
+  static const String shareDocument = '/documents/share';
+  static const String notifications = '/notifications';
+
+  /// Helper to generate share document route with documentId
+  static String shareDocumentRoute(String documentId) => '/documents/$documentId/share';
 }
 
 /// App router provider
@@ -99,17 +109,38 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       }
 
       // Authenticated - check onboarding status
-      final isOnboardingStatus = userStatus == DriverStatus.onboarding;
+      // v4.0: Check user.isOnboarding (checks operators array first, legacy fallback)
+      final user = authState.maybeWhen(
+        authenticated: (u) => u,
+        orElse: () => null,
+      );
+
+      // Determine if user needs onboarding
+      // Priority: check if ANY operator is in 'onboarding' state, then legacy status
+      final isOnboardingStatus = user?.isOnboarding ??
+          userStatus == DriverStatus.onboarding;
+
       final isOnboardingSubPage = currentPath == AppRoutes.profile ||
           currentPath == AppRoutes.vehicles ||
           currentPath == AppRoutes.documents ||
           currentPath == AppRoutes.faceRegistration;
       final isHomeRoute = currentPath == AppRoutes.home;
+      final isMyOperatorsRoute = currentPath == AppRoutes.myOperators;
 
-      // If onboarding status but onboarding is COMPLETE locally, allow access to home
-      // This handles the case where all steps are done but backend hasn't updated status yet
-      if (isOnboardingStatus && isOnboardingComplete && isHomeRoute) {
-        return null; // Allow access to home
+      // If onboarding is COMPLETE locally, ALWAYS allow access to home
+      // This handles:
+      // 1. Backend hasn't updated status yet
+      // 2. Existing driver joining new operator (data already exists)
+      if (isOnboardingComplete && (isHomeRoute || isMyOperatorsRoute)) {
+        return null; // Allow access to home/operators
+      }
+
+      // If onboarding status but onboarding is COMPLETE locally, skip to home
+      if (isOnboardingStatus && isOnboardingComplete) {
+        if (isAuthRoute || isSplashRoute || isOnboardingRoute) {
+          return AppRoutes.home;
+        }
+        return null; // Allow navigation to wherever they want
       }
 
       // If onboarding status and not complete, keep user in onboarding flow
@@ -166,7 +197,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: AppRoutes.onboarding,
-        builder: (context, state) => const OnboardingPage(),
+        builder: (context, state) => const OnboardingWizardPage(),
       ),
       GoRoute(
         path: AppRoutes.profile,
@@ -175,6 +206,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.vehicles,
         builder: (context, state) => const VehiclesPage(),
+      ),
+      GoRoute(
+        path: '/vehicles/:vrn',
+        builder: (context, state) {
+          final vrn = state.pathParameters['vrn'] ?? '';
+          return VehicleDetailPage(vrn: vrn);
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.notifications,
+        builder: (context, state) => const NotificationsPage(),
       ),
       GoRoute(
         path: AppRoutes.documents,
@@ -191,6 +233,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           icon: Icons.work,
           description: 'Job management coming soon',
         ),
+      ),
+      GoRoute(
+        path: AppRoutes.myOperators,
+        builder: (context, state) => const MyOperatorsPage(),
+      ),
+      GoRoute(
+        path: '/documents/:documentId/share',
+        builder: (context, state) {
+          final documentId = state.pathParameters['documentId'] ?? '';
+          return ShareDocumentPage(documentId: documentId);
+        },
       ),
     ],
     errorBuilder: (context, state) => Scaffold(

@@ -42,6 +42,7 @@ enum DocumentStatus {
 }
 
 /// Driver document model
+/// v4.0: Driver-owned architecture - documents are owned by driver and shared with operators
 class DriverDocument {
   final String documentId;
   final DocumentType documentType;
@@ -60,6 +61,9 @@ class DriverDocument {
   final String? createdAt;
   final String? updatedAt;
 
+  /// v4.0: List of operator IDs this document is shared with
+  final List<String> sharedWith;
+
   const DriverDocument({
     required this.documentId,
     required this.documentType,
@@ -77,10 +81,46 @@ class DriverDocument {
     this.notes,
     this.createdAt,
     this.updatedAt,
+    this.sharedWith = const [],
   });
+
+  /// Check if document is shared with a specific operator
+  bool isSharedWith(String operatorId) {
+    return sharedWith.contains(operatorId);
+  }
+
+  /// Create a copy with updated sharedWith list
+  DriverDocument copyWithSharedWith(List<String> newSharedWith) {
+    return DriverDocument(
+      documentId: documentId,
+      documentType: documentType,
+      belongsTo: belongsTo,
+      vehicleVrn: vehicleVrn,
+      licenseNumber: licenseNumber,
+      issuingAuthority: issuingAuthority,
+      issueDate: issueDate,
+      expiryDate: expiryDate,
+      status: status,
+      fileName: fileName,
+      verifiedBy: verifiedBy,
+      verifiedAt: verifiedAt,
+      rejectionReason: rejectionReason,
+      notes: notes,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+      sharedWith: newSharedWith,
+    );
+  }
 
   factory DriverDocument.fromJson(Map<String, dynamic> json) {
     final docType = DocumentType.fromApiValue(json['documentType'] as String);
+
+    // Parse sharedWith array (v4.0 driver-owned architecture)
+    final sharedWithRaw = json['sharedWith'];
+    final List<String> sharedWith = sharedWithRaw is List
+        ? sharedWithRaw.map((e) => e.toString()).toList()
+        : const [];
+
     return DriverDocument(
       documentId: json['documentId'] as String,
       documentType: docType,
@@ -100,6 +140,7 @@ class DriverDocument {
       // Backend may use 'uploadedAt' or 'createdAt'
       createdAt: json['uploadedAt'] as String? ?? json['createdAt'] as String?,
       updatedAt: json['updatedAt'] as String?,
+      sharedWith: sharedWith,
     );
   }
 
@@ -121,6 +162,7 @@ class DriverDocument {
       if (notes != null) 'notes': notes,
       if (createdAt != null) 'createdAt': createdAt,
       if (updatedAt != null) 'updatedAt': updatedAt,
+      'sharedWith': sharedWith,
     };
   }
 
