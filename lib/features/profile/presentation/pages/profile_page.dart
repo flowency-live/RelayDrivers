@@ -5,8 +5,9 @@ import '../../../../core/router/app_router.dart';
 import '../../../auth/application/providers.dart';
 import '../../application/profile_providers.dart';
 import '../../domain/models/driver_profile.dart';
+import '../widgets/editable_profile_field.dart';
 
-/// Profile page - view and edit driver profile
+/// Profile page - view and edit driver profile with tap-to-edit fields
 class ProfilePage extends ConsumerStatefulWidget {
   const ProfilePage({super.key});
 
@@ -79,10 +80,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           ),
         ProfileLoaded(:final profile) ||
         ProfileSaving(:final profile) =>
-          _ProfileContent(
-            profile: profile,
-            isSaving: profileState is ProfileSaving,
-          ),
+          _ProfileContent(profile: profile),
       },
     );
   }
@@ -90,12 +88,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
 class _ProfileContent extends ConsumerWidget {
   final DriverProfile profile;
-  final bool isSaving;
 
-  const _ProfileContent({
-    required this.profile,
-    required this.isSaving,
-  });
+  const _ProfileContent({required this.profile});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -137,15 +131,26 @@ class _ProfileContent extends ConsumerWidget {
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 12),
-          _ProfileField(
+          EditableProfileField(
             icon: Icons.email_outlined,
             label: 'Email',
             value: profile.email,
+            editable: false, // Email cannot be changed
+            onSave: (_) async => false,
           ),
-          _ProfileField(
+          EditableProfileField(
             icon: Icons.phone_outlined,
             label: 'Phone',
-            value: profile.phone ?? 'Not set',
+            value: profile.phone,
+            keyboardType: TextInputType.phone,
+            onSave: (value) async {
+              final request = ProfileUpdateRequest(
+                firstName: profile.firstName,
+                lastName: profile.lastName,
+                phone: value,
+              );
+              return await ref.read(profileStateProvider.notifier).updateProfile(request);
+            },
           ),
           const SizedBox(height: 24),
 
@@ -155,20 +160,47 @@ class _ProfileContent extends ConsumerWidget {
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 12),
-          _ProfileField(
+          EditableProfileField(
             icon: Icons.home_outlined,
             label: 'Address',
-            value: profile.address ?? 'Not set',
+            value: profile.address,
+            textCapitalization: TextCapitalization.words,
+            onSave: (value) async {
+              final request = ProfileUpdateRequest(
+                firstName: profile.firstName,
+                lastName: profile.lastName,
+                address: value,
+              );
+              return await ref.read(profileStateProvider.notifier).updateProfile(request);
+            },
           ),
-          _ProfileField(
+          EditableProfileField(
             icon: Icons.location_city_outlined,
             label: 'City',
-            value: profile.city ?? 'Not set',
+            value: profile.city,
+            textCapitalization: TextCapitalization.words,
+            onSave: (value) async {
+              final request = ProfileUpdateRequest(
+                firstName: profile.firstName,
+                lastName: profile.lastName,
+                city: value,
+              );
+              return await ref.read(profileStateProvider.notifier).updateProfile(request);
+            },
           ),
-          _ProfileField(
+          EditableProfileField(
             icon: Icons.pin_outlined,
             label: 'Postcode',
-            value: profile.postcode ?? 'Not set',
+            value: profile.postcode,
+            textCapitalization: TextCapitalization.characters,
+            onSave: (value) async {
+              final request = ProfileUpdateRequest(
+                firstName: profile.firstName,
+                lastName: profile.lastName,
+                postcode: value?.toUpperCase(),
+              );
+              return await ref.read(profileStateProvider.notifier).updateProfile(request);
+            },
           ),
           const SizedBox(height: 24),
 
@@ -178,17 +210,20 @@ class _ProfileContent extends ConsumerWidget {
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 12),
-          _ProfileField(
+          EditableProfileField(
             icon: Icons.cake_outlined,
             label: 'Date of Birth',
-            value: profile.dateOfBirth ?? 'Not set',
+            value: profile.dateOfBirth,
+            editable: false, // DOB set during onboarding
+            onSave: (_) async => false,
           ),
-          _ProfileField(
+          EditableProfileField(
             icon: Icons.badge_outlined,
             label: 'National Insurance',
-            value: profile.nationalInsurance != null
-                ? '****${profile.nationalInsurance!.substring(profile.nationalInsurance!.length - 4)}'
-                : 'Not set',
+            value: profile.nationalInsurance,
+            masked: true,
+            editable: false, // NI set during onboarding
+            onSave: (_) async => false,
           ),
           const SizedBox(height: 24),
 
@@ -197,95 +232,56 @@ class _ProfileContent extends ConsumerWidget {
             'UK Driving Licence',
             style: Theme.of(context).textTheme.titleMedium,
           ),
+          const SizedBox(height: 4),
+          Text(
+            'Tap any field to edit',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.outline,
+                ),
+          ),
           const SizedBox(height: 12),
-          _ProfileField(
+          EditableProfileField(
             icon: Icons.credit_card_outlined,
             label: 'Licence Number',
-            value: profile.dvlaLicenceNumber ?? 'Not set',
+            value: profile.dvlaLicenceNumber,
+            textCapitalization: TextCapitalization.characters,
+            onSave: (value) async {
+              final request = ProfileUpdateRequest(
+                firstName: profile.firstName,
+                lastName: profile.lastName,
+                dvlaLicenceNumber: value?.toUpperCase(),
+              );
+              return await ref.read(profileStateProvider.notifier).updateProfile(request);
+            },
           ),
-          _ProfileField(
+          EditableProfileField(
             icon: Icons.pin_outlined,
             label: 'Check Code',
-            value: profile.dvlaCheckCode ?? 'Not set',
+            value: profile.dvlaCheckCode,
+            textCapitalization: TextCapitalization.characters,
+            onSave: (value) async {
+              final request = ProfileUpdateRequest(
+                firstName: profile.firstName,
+                lastName: profile.lastName,
+                dvlaCheckCode: value?.toUpperCase(),
+              );
+              return await ref.read(profileStateProvider.notifier).updateProfile(request);
+            },
           ),
-          _ProfileField(
+          EditableProfileField(
             icon: Icons.calendar_today_outlined,
             label: 'Licence Expiry',
-            value: profile.dvlaLicenceExpiry ?? 'Not set',
+            value: profile.dvlaLicenceExpiry,
+            onSave: (value) async {
+              final request = ProfileUpdateRequest(
+                firstName: profile.firstName,
+                lastName: profile.lastName,
+                dvlaLicenceExpiry: value,
+              );
+              return await ref.read(profileStateProvider.notifier).updateProfile(request);
+            },
           ),
           const SizedBox(height: 32),
-
-          // Edit button
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: isSaving
-                  ? null
-                  : () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => _EditProfilePage(
-                            profile: profile,
-                          ),
-                        ),
-                      );
-                    },
-              icon: isSaving
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.edit),
-              label: Text(isSaving ? 'Saving...' : 'Edit Profile'),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ProfileField extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-
-  const _ProfileField({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        children: [
-          Icon(
-            icon,
-            size: 20,
-            color: Theme.of(context).colorScheme.primary,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).textTheme.bodySmall?.color,
-                      ),
-                ),
-                Text(
-                  value,
-                  style: Theme.of(context).textTheme.bodyLarge,
-                ),
-              ],
-            ),
-          ),
         ],
       ),
     );
@@ -336,258 +332,6 @@ class _StatusBadge extends StatelessWidget {
               color: textColor,
               fontWeight: FontWeight.bold,
             ),
-      ),
-    );
-  }
-}
-
-/// Edit profile page
-class _EditProfilePage extends ConsumerStatefulWidget {
-  final DriverProfile profile;
-
-  const _EditProfilePage({required this.profile});
-
-  @override
-  ConsumerState<_EditProfilePage> createState() => _EditProfilePageState();
-}
-
-class _EditProfilePageState extends ConsumerState<_EditProfilePage> {
-  final _formKey = GlobalKey<FormState>();
-  late TextEditingController _firstNameController;
-  late TextEditingController _lastNameController;
-  late TextEditingController _phoneController;
-  late TextEditingController _addressController;
-  late TextEditingController _cityController;
-  late TextEditingController _postcodeController;
-  late TextEditingController _dvlaLicenceNumberController;
-  late TextEditingController _dvlaCheckCodeController;
-  late TextEditingController _dvlaLicenceExpiryController;
-
-  @override
-  void initState() {
-    super.initState();
-    _firstNameController =
-        TextEditingController(text: widget.profile.firstName);
-    _lastNameController = TextEditingController(text: widget.profile.lastName);
-    _phoneController = TextEditingController(text: widget.profile.phone ?? '');
-    _addressController =
-        TextEditingController(text: widget.profile.address ?? '');
-    _cityController = TextEditingController(text: widget.profile.city ?? '');
-    _postcodeController =
-        TextEditingController(text: widget.profile.postcode ?? '');
-    _dvlaLicenceNumberController =
-        TextEditingController(text: widget.profile.dvlaLicenceNumber ?? '');
-    _dvlaCheckCodeController =
-        TextEditingController(text: widget.profile.dvlaCheckCode ?? '');
-    _dvlaLicenceExpiryController =
-        TextEditingController(text: widget.profile.dvlaLicenceExpiry ?? '');
-  }
-
-  @override
-  void dispose() {
-    _firstNameController.dispose();
-    _lastNameController.dispose();
-    _phoneController.dispose();
-    _addressController.dispose();
-    _cityController.dispose();
-    _postcodeController.dispose();
-    _dvlaLicenceNumberController.dispose();
-    _dvlaCheckCodeController.dispose();
-    _dvlaLicenceExpiryController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _saveProfile() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    final request = ProfileUpdateRequest(
-      firstName: _firstNameController.text.trim(),
-      lastName: _lastNameController.text.trim(),
-      phone: _phoneController.text.trim().isNotEmpty
-          ? _phoneController.text.trim()
-          : null,
-      address: _addressController.text.trim().isNotEmpty
-          ? _addressController.text.trim()
-          : null,
-      city: _cityController.text.trim().isNotEmpty
-          ? _cityController.text.trim()
-          : null,
-      postcode: _postcodeController.text.trim().isNotEmpty
-          ? _postcodeController.text.trim()
-          : null,
-      dvlaLicenceNumber: _dvlaLicenceNumberController.text.trim().isNotEmpty
-          ? _dvlaLicenceNumberController.text.trim().toUpperCase()
-          : null,
-      dvlaCheckCode: _dvlaCheckCodeController.text.trim().isNotEmpty
-          ? _dvlaCheckCodeController.text.trim().toUpperCase()
-          : null,
-      dvlaLicenceExpiry: _dvlaLicenceExpiryController.text.trim().isNotEmpty
-          ? _dvlaLicenceExpiryController.text.trim()
-          : null,
-    );
-
-    final success =
-        await ref.read(profileStateProvider.notifier).updateProfile(request);
-
-    if (success && mounted) {
-      Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile updated successfully')),
-      );
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final profileState = ref.watch(profileStateProvider);
-    final isSaving = profileState is ProfileSaving;
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Edit Profile'),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              TextFormField(
-                controller: _firstNameController,
-                textCapitalization: TextCapitalization.words,
-                decoration: const InputDecoration(
-                  labelText: 'First Name',
-                  prefixIcon: Icon(Icons.person_outlined),
-                ),
-                validator: (v) =>
-                    v?.trim().isEmpty == true ? 'Required' : null,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _lastNameController,
-                textCapitalization: TextCapitalization.words,
-                decoration: const InputDecoration(
-                  labelText: 'Last Name',
-                  prefixIcon: Icon(Icons.person_outlined),
-                ),
-                validator: (v) =>
-                    v?.trim().isEmpty == true ? 'Required' : null,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _phoneController,
-                keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(
-                  labelText: 'Phone',
-                  prefixIcon: Icon(Icons.phone_outlined),
-                  hintText: '07xxx xxxxxx',
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _addressController,
-                textCapitalization: TextCapitalization.words,
-                decoration: const InputDecoration(
-                  labelText: 'Address',
-                  prefixIcon: Icon(Icons.home_outlined),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _cityController,
-                textCapitalization: TextCapitalization.words,
-                decoration: const InputDecoration(
-                  labelText: 'City',
-                  prefixIcon: Icon(Icons.location_city_outlined),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _postcodeController,
-                textCapitalization: TextCapitalization.characters,
-                decoration: const InputDecoration(
-                  labelText: 'Postcode',
-                  prefixIcon: Icon(Icons.pin_outlined),
-                  hintText: 'BH1 1AA',
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // DVLA Section Header
-              Text(
-                'UK Driving Licence',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Your DVLA licence number and check code are required for onboarding.',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).textTheme.bodySmall?.color?.withAlpha(179),
-                    ),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _dvlaLicenceNumberController,
-                textCapitalization: TextCapitalization.characters,
-                decoration: const InputDecoration(
-                  labelText: 'DVLA Licence Number',
-                  prefixIcon: Icon(Icons.credit_card_outlined),
-                  hintText: 'MORGA657054SM9IJ',
-                  helperText: '16 characters from your driving licence',
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _dvlaCheckCodeController,
-                textCapitalization: TextCapitalization.characters,
-                maxLength: 8,
-                decoration: const InputDecoration(
-                  labelText: 'DVLA Check Code',
-                  prefixIcon: Icon(Icons.pin_outlined),
-                  hintText: 'ABC123XY',
-                  helperText: 'Get this from gov.uk/view-driving-licence',
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _dvlaLicenceExpiryController,
-                keyboardType: TextInputType.datetime,
-                decoration: const InputDecoration(
-                  labelText: 'Licence Expiry Date',
-                  prefixIcon: Icon(Icons.calendar_today_outlined),
-                  hintText: 'YYYY-MM-DD',
-                ),
-              ),
-              const SizedBox(height: 32),
-              ElevatedButton(
-                onPressed: isSaving ? null : _saveProfile,
-                child: isSaving
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Text('Save Changes'),
-              ),
-              if (profileState is ProfileError) ...[
-                const SizedBox(height: 16),
-                Text(
-                  profileState.message,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.error,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ],
-          ),
-        ),
       ),
     );
   }
