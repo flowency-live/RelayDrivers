@@ -16,18 +16,29 @@ class AuthResponse {
 
   factory AuthResponse.fromJson(Map<String, dynamic> json) {
     // Backend returns 'driver' not 'user'
-    final driverData = json['driver'] ?? json['user'];
-    if (driverData == null) {
+    final rawDriverData = json['driver'] ?? json['user'];
+    if (rawDriverData == null) {
       throw FormatException('Response missing driver/user data');
     }
 
+    // Backend returns operators at response root, not inside driver object
+    final driverData = Map<String, dynamic>.from(rawDriverData as Map<String, dynamic>);
+
+    // Merge top-level fields into driver data for DriverUser parsing
+    if (json['operators'] != null) {
+      driverData['operators'] = json['operators'];
+    }
+    if (json['activeOperator'] != null) {
+      driverData['activeOperator'] = json['activeOperator'];
+    }
+
     // accessToken might be in response body or extracted from cookie
-    final token = json['accessToken'] as String? ?? '';
+    final token = json['accessToken'] as String? ?? json['token'] as String? ?? '';
 
     return AuthResponse(
       accessToken: token,
       refreshToken: json['refreshToken'] as String?,
-      user: DriverUser.fromJson(driverData as Map<String, dynamic>),
+      user: DriverUser.fromJson(driverData),
     );
   }
 

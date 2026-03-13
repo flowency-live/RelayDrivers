@@ -56,11 +56,23 @@ class InviteClaimResponse {
       }
     }
 
-    final driverData = json['driver'] as Map<String, dynamic>? ?? {};
+    // Get driver data and merge top-level operators/activeOperator
+    // Backend returns operators at response root, not inside driver object
+    final driverData = Map<String, dynamic>.from(
+      json['driver'] as Map<String, dynamic>? ?? {},
+    );
+
+    // Merge top-level fields into driver data for DriverUser parsing
+    if (json['operators'] != null) {
+      driverData['operators'] = json['operators'];
+    }
+    if (json['activeOperator'] != null) {
+      driverData['activeOperator'] = json['activeOperator'];
+    }
 
     return InviteClaimResponse(
       driver: DriverUser.fromJson(driverData),
-      tenantId: json['tenantId'] as String? ?? '',
+      tenantId: json['activeOperator'] as String? ?? '',
       token: token ?? '',
     );
   }

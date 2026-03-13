@@ -70,15 +70,26 @@ class OtpVerifyResponse {
       }
     }
 
-    // Parse driver data if present
+    // Parse driver data if present, merging top-level operators/activeOperator
     DriverUser? driver;
-    final driverData = json['driver'];
-    if (driverData != null && driverData is Map<String, dynamic>) {
+    final rawDriverData = json['driver'];
+    if (rawDriverData != null && rawDriverData is Map<String, dynamic>) {
+      // Backend returns operators at response root, not inside driver object
+      final driverData = Map<String, dynamic>.from(rawDriverData);
+
+      // Merge top-level fields into driver data for DriverUser parsing
+      if (json['operators'] != null) {
+        driverData['operators'] = json['operators'];
+      }
+      if (json['activeOperator'] != null) {
+        driverData['activeOperator'] = json['activeOperator'];
+      }
+
       driver = DriverUser.fromJson(driverData);
     }
 
     return OtpVerifyResponse(
-      isNewDriver: json['isNewDriver'] as bool? ?? false,
+      isNewDriver: json['needsOnboarding'] as bool? ?? false,
       token: token,
       driver: driver,
     );
