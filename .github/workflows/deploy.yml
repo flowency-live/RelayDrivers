@@ -33,9 +33,6 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    permissions:
-      id-token: write
-      contents: read
 
     steps:
       - uses: actions/checkout@v4
@@ -51,23 +48,10 @@ jobs:
       - name: Build web release
         run: flutter build web --release --base-href "/" --dart-define=EPOSTCODE_API_KEY=${{ secrets.EPOSTCODE_API_KEY }}
 
-      - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
+      - name: Deploy to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
         with:
-          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
-          aws-region: eu-west-2
-
-      - name: Sync to S3
-        run: aws s3 sync build/web/ s3://${{ secrets.S3_BUCKET_NAME }}/ --delete
-
-      - name: Invalidate CloudFront cache
-        run: |
-          aws cloudfront create-invalidation \
-            --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} \
-            --paths "/*"
-
-      - name: Deployment summary
-        run: |
-          echo "## Deployment Complete" >> $GITHUB_STEP_SUMMARY
-          echo "- S3 Bucket: ${{ secrets.S3_BUCKET_NAME }}" >> $GITHUB_STEP_SUMMARY
-          echo "- CloudFront invalidation triggered" >> $GITHUB_STEP_SUMMARY
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_RELAYDRIVERS }}
+          channelId: live
+          projectId: relaydrivers
