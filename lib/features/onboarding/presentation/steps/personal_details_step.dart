@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../application/onboarding_wizard_provider.dart';
+import '../../domain/models/uk_address.dart';
 import '../../domain/services/dvla_licence_service.dart';
 import '../widgets/wizard_scaffold.dart';
-import '../../../../core/services/postcode_service.dart';
+import '../widgets/address_autocomplete_field.dart';
+import '../../../../config/api_keys.dart';
 
 /// Phase 1, Step 1: Personal Details
-/// Collects name, DOB, and address with postcode autocomplete
+/// Collects name, DOB, and address with type-ahead autocomplete
 class PersonalDetailsStep extends ConsumerStatefulWidget {
   const PersonalDetailsStep({super.key});
 
@@ -25,9 +27,7 @@ class _PersonalDetailsStepState extends ConsumerState<PersonalDetailsStep> {
   final _cityController = TextEditingController();
 
   Gender? _selectedGender;
-  List<PostcodeAddress>? _addressSuggestions;
-  bool _isLoadingAddresses = false;
-  bool _showAddressSelector = false;
+  bool _useManualAddressEntry = false;
 
   @override
   void initState() {
@@ -45,6 +45,11 @@ class _PersonalDetailsStepState extends ConsumerState<PersonalDetailsStep> {
     _postcodeController.text = data.postcode ?? '';
     _addressController.text = data.address ?? '';
     _cityController.text = data.city ?? '';
+
+    // If address already exists, use manual entry mode
+    if (_addressController.text.isNotEmpty) {
+      _useManualAddressEntry = true;
+    }
   }
 
   @override
@@ -59,63 +64,15 @@ class _PersonalDetailsStepState extends ConsumerState<PersonalDetailsStep> {
     super.dispose();
   }
 
-  Future<void> _lookupPostcode() async {
-    final postcode = _postcodeController.text.trim();
-    if (postcode.isEmpty) return;
-
-    setState(() {
-      _isLoadingAddresses = true;
-      _addressSuggestions = null;
-    });
-
-    try {
-      final addresses = await PostcodeService.lookupPostcode(postcode);
-      setState(() {
-        _addressSuggestions = addresses;
-        _showAddressSelector = addresses.isNotEmpty;
-        _isLoadingAddresses = false;
-      });
-
-      if (addresses.isEmpty) {
-        _showNoAddressesDialog();
-      }
-    } catch (e) {
-      setState(() {
-        _isLoadingAddresses = false;
-      });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not lookup postcode: $e')),
-        );
-      }
-    }
-  }
-
-  void _showNoAddressesDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Postcode Not Found'),
-        content: const Text(
-          'We couldn\'t find addresses for this postcode. '
-          'Please check the postcode or enter your address manually.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _selectAddress(PostcodeAddress address) {
+  void _onAddressSelected(UkAddress address) {
     setState(() {
       _addressController.text = address.line1;
+      if (address.line2 != null && address.line2!.isNotEmpty) {
+        _addressController.text += ', ${address.line2}';
+      }
       _cityController.text = address.city;
       _postcodeController.text = address.postcode;
-      _showAddressSelector = false;
+      _useManualAddressEntry = true;
     });
   }
 
@@ -181,6 +138,7 @@ class _PersonalDetailsStepState extends ConsumerState<PersonalDetailsStep> {
   @override
   Widget build(BuildContext context) {
     final wizardState = ref.watch(onboardingWizardProvider);
+    final theme = Theme.of(context);
 
     return WizardScaffold(
       step: WizardStep.personalDetails,
@@ -236,13 +194,13 @@ class _PersonalDetailsStepState extends ConsumerState<PersonalDetailsStep> {
             // Gender selection (required for DVLA licence calculation)
             Text(
               'Gender',
-              style: Theme.of(context).textTheme.titleSmall,
+              style: theme.textTheme.titleSmall,
             ),
             const SizedBox(height: 4),
             Text(
               'Required for DVLA licence number verification',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.outline,
+              style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.outline,
                   ),
             ),
             const SizedBox(height: 8),
@@ -283,99 +241,115 @@ class _PersonalDetailsStepState extends ConsumerState<PersonalDetailsStep> {
             // Address section header
             Text(
               'Your Address',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
             ),
             const SizedBox(height: 8),
-            const WizardInfoBanner(
-              message: 'Enter your postcode and we\'ll find your address',
-            ),
-            const SizedBox(height: 16),
 
-            // Postcode with lookup button
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: WizardTextField(
-                    controller: _postcodeController,
-                    label: 'Postcode',
-                    hint: 'BH1 1AA',
-                    prefixIcon: Icons.location_on_outlined,
-                    textCapitalization: TextCapitalization.characters,
-                    onChanged: (_) => setState(() {}),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                SizedBox(
-                  height: 56,
-                  child: FilledButton(
-                    onPressed: _isLoadingAddresses ? null : _lookupPostcode,
-                    child: _isLoadingAddresses
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Text('Find'),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            // Address selector (shown after postcode lookup)
-            if (_showAddressSelector && _addressSuggestions != null) ...[
-              Container(
-                constraints: const BoxConstraints(maxHeight: 200),
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: Theme.of(context).colorScheme.outline,
-                  ),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: ListView.separated(
-                  shrinkWrap: true,
-                  itemCount: _addressSuggestions!.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1),
-                  itemBuilder: (context, index) {
-                    final address = _addressSuggestions![index];
-                    return ListTile(
-                      dense: true,
-                      title: Text(address.line1),
-                      subtitle: Text(address.city),
-                      onTap: () => _selectAddress(address),
-                    );
-                  },
-                ),
+            // Show autocomplete or manual entry based on state
+            if (!_useManualAddressEntry && ApiKeys.isConfigured) ...[
+              const WizardInfoBanner(
+                message: 'Start typing your address to search',
               ),
               const SizedBox(height: 16),
+
+              // Address autocomplete field
+              AddressAutocompleteField(
+                label: 'Search for your address',
+                hint: 'Start typing your address...',
+                onAddressSelected: _onAddressSelected,
+              ),
+              const SizedBox(height: 12),
+
+              // Manual entry toggle
+              TextButton.icon(
+                onPressed: () {
+                  setState(() {
+                    _useManualAddressEntry = true;
+                  });
+                },
+                icon: const Icon(Icons.edit, size: 18),
+                label: const Text('Enter address manually'),
+              ),
+            ] else ...[
+              // Manual address entry fields
+              if (!ApiKeys.isConfigured) ...[
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        size: 20,
+                        color: theme.colorScheme.outline,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Address autocomplete is not configured. Enter your address manually.',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.outline,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+
+              WizardTextField(
+                controller: _addressController,
+                label: 'Address',
+                hint: '123 Example Street',
+                prefixIcon: Icons.home_outlined,
+                textCapitalization: TextCapitalization.words,
+                validator: (v) =>
+                    v?.trim().isEmpty == true ? 'Required' : null,
+                onChanged: (_) => setState(() {}),
+              ),
+              const SizedBox(height: 16),
+
+              WizardTextField(
+                controller: _cityController,
+                label: 'City',
+                prefixIcon: Icons.location_city_outlined,
+                textCapitalization: TextCapitalization.words,
+                onChanged: (_) => setState(() {}),
+              ),
+              const SizedBox(height: 16),
+
+              WizardTextField(
+                controller: _postcodeController,
+                label: 'Postcode',
+                hint: 'BH1 1AA',
+                prefixIcon: Icons.location_on_outlined,
+                textCapitalization: TextCapitalization.characters,
+                onChanged: (_) => setState(() {}),
+              ),
+
+              // Option to use autocomplete (if configured)
+              if (ApiKeys.isConfigured) ...[
+                const SizedBox(height: 12),
+                TextButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      _useManualAddressEntry = false;
+                      _addressController.clear();
+                      _cityController.clear();
+                      _postcodeController.clear();
+                    });
+                  },
+                  icon: const Icon(Icons.search, size: 18),
+                  label: const Text('Search for address instead'),
+                ),
+              ],
             ],
-
-            // Manual address fields
-            WizardTextField(
-              controller: _addressController,
-              label: 'Address',
-              hint: '123 Example Street',
-              prefixIcon: Icons.home_outlined,
-              textCapitalization: TextCapitalization.words,
-              validator: (v) =>
-                  v?.trim().isEmpty == true ? 'Required' : null,
-              onChanged: (_) => setState(() {}),
-            ),
-            const SizedBox(height: 16),
-
-            WizardTextField(
-              controller: _cityController,
-              label: 'City',
-              prefixIcon: Icons.location_city_outlined,
-              textCapitalization: TextCapitalization.words,
-              onChanged: (_) => setState(() {}),
-            ),
           ],
         ),
       ),
