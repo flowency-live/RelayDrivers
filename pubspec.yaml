@@ -32,6 +32,12 @@ dependencies:
   # Biometric authentication (fingerprint/Face ID)
   local_auth: ^2.3.0
 
+  # Web platform support for PWA install prompt
+  web: ^1.1.0
+
+  # URL Launcher for external links
+  url_launcher: ^6.2.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
