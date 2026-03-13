@@ -4,11 +4,16 @@ import '../models/uk_address.dart';
 class AddressSuggestion {
   final String displayText;
   final String id;
+  final String type; // "Premise" or "Group"
 
   const AddressSuggestion({
     required this.displayText,
     required this.id,
+    required this.type,
   });
+
+  /// Whether this is a specific address (Premise) vs a street/area (Group)
+  bool get isPremise => type == 'Premise';
 
   @override
   String toString() => displayText;
@@ -18,123 +23,133 @@ class AddressSuggestion {
 ///
 /// This service has NO external dependencies - it only transforms data.
 /// The actual HTTP calls are made by the AddressRepository (infrastructure layer).
+///
+/// ePostcode API: https://wsp.epostcode.com/uk/v1/
 class AddressService {
   // ePostcode API base URL
-  static const String _baseUrl = 'https://api.ideal-postcodes.co.uk/v1';
+  static const String _baseUrl = 'https://wsp.epostcode.com/uk/v1';
 
-  /// Parses autocomplete suggestions from ePostcode API response
+  /// Parses autocomplete suggestions from ePostcode Search response
   ///
   /// Expected response format:
   /// ```json
   /// {
-  ///   "result": [
-  ///     {"suggestion": "1 High Street, Bournemouth, BH1 1AA", "id": "abc123"},
-  ///     ...
+  ///   "items": [
+  ///     {"key": "prem_123", "text": "1 High Street, Bournemouth, BH1 1AA", "type": "Premise"},
+  ///     {"key": "grp_456", "text": "High Street, Bournemouth", "type": "Group"}
   ///   ]
   /// }
   /// ```
+  ///
+  /// If [premiseOnly] is true, filters to only return Premise items (specific addresses)
   List<AddressSuggestion> parseAutocompleteSuggestions(
-    Map<String, dynamic> response,
-  ) {
-    final result = response['result'];
-    if (result == null || result is! List) {
+    Map<String, dynamic> response, {
+    bool premiseOnly = false,
+  }) {
+    final items = response['items'];
+    if (items == null || items is! List) {
       return [];
     }
 
     final suggestions = <AddressSuggestion>[];
-    for (final item in result) {
+    for (final item in items) {
       if (item is! Map<String, dynamic>) continue;
 
-      final suggestion = item['suggestion'];
-      final id = item['id'];
+      final key = item['key'];
+      final text = item['text'];
+      final type = item['type'];
 
       // Skip entries with missing required fields
-      if (suggestion == null || suggestion is! String) continue;
-      if (id == null || id is! String) continue;
+      if (key == null || key is! String) continue;
+      if (text == null || text is! String) continue;
+      if (type == null || type is! String) continue;
+
+      // Filter by type if requested
+      if (premiseOnly && type != 'Premise') continue;
 
       suggestions.add(AddressSuggestion(
-        displayText: suggestion,
-        id: id,
+        id: key,
+        displayText: text,
+        type: type,
       ));
     }
 
     return suggestions;
   }
 
-  /// Parses a full address from ePostcode API address lookup response
+  /// Parses a full address from ePostcode GetPremise response
   ///
   /// Expected response format:
   /// ```json
   /// {
-  ///   "result": {
-  ///     "line_1": "1 High Street",
-  ///     "line_2": "Flat 2",
-  ///     "line_3": "",
-  ///     "post_town": "BOURNEMOUTH",
-  ///     "county": "Dorset",
-  ///     "postcode": "BH1 1AA"
-  ///   }
+  ///   "building": "1",
+  ///   "street": "High Street",
+  ///   "city": "Bournemouth",
+  ///   "postcode": "BH1 1AA",
+  ///   "county": "Dorset",
+  ///   "latitude": 50.7192,
+  ///   "longitude": -1.8808
   /// }
   /// ```
-  UkAddress? parseAddressById(Map<String, dynamic> response) {
-    final result = response['result'];
-    if (result == null || result is! Map<String, dynamic>) {
-      return null;
-    }
-
-    final line1 = result['line_1'];
-    final postTown = result['post_town'];
-    final postcode = result['postcode'];
+  UkAddress? parseAddressFromPremise(Map<String, dynamic> response) {
+    final city = response['city'];
+    final postcode = response['postcode'];
+    final street = response['street'];
 
     // Required fields must be present
-    if (line1 == null || line1 is! String || line1.isEmpty) return null;
-    if (postTown == null || postTown is! String || postTown.isEmpty) return null;
+    if (city == null || city is! String || city.isEmpty) return null;
     if (postcode == null || postcode is! String || postcode.isEmpty) return null;
 
-    // Combine line_2 and line_3 if both present
-    final line2Raw = result['line_2'] as String?;
-    final line3Raw = result['line_3'] as String?;
+    final building = response['building'] as String?;
+    final county = response['county'] as String?;
+
+    // Build line1 and line2 based on building format
+    String line1;
     String? line2;
 
-    if (line2Raw != null && line2Raw.isNotEmpty) {
-      if (line3Raw != null && line3Raw.isNotEmpty) {
-        line2 = '$line2Raw, $line3Raw';
+    if (building != null && building.isNotEmpty) {
+      // Check if building is a number (simple case) or a name/flat
+      final isSimpleNumber = RegExp(r'^\d+[a-zA-Z]?$').hasMatch(building);
+
+      if (isSimpleNumber && street != null && street.isNotEmpty) {
+        // Simple number: "1 High Street"
+        line1 = '$building $street';
+      } else if (building.contains(',') || building.toLowerCase().startsWith('flat')) {
+        // Complex building: "Flat 2, Rose House" -> line1, street -> line2
+        line1 = building;
+        line2 = street;
+      } else if (street != null && street.isNotEmpty) {
+        // Named building: "Rose Cottage, High Street"
+        line1 = '$building, $street';
       } else {
-        line2 = line2Raw;
+        line1 = building;
       }
-    } else if (line3Raw != null && line3Raw.isNotEmpty) {
-      line2 = line3Raw;
+    } else if (street != null && street.isNotEmpty) {
+      line1 = street;
+    } else {
+      return null; // No address line available
     }
 
     return UkAddress(
       line1: line1,
       line2: line2,
-      city: _toTitleCase(postTown),
-      county: result['county'] as String?,
+      city: city,
+      county: county,
       postcode: postcode,
     );
   }
 
-  /// Converts a string to Title Case (first letter of each word capitalized)
-  static String _toTitleCase(String text) {
-    if (text.isEmpty) return text;
-    return text.split(' ').map((word) {
-      if (word.isEmpty) return word;
-      return word[0].toUpperCase() + word.substring(1).toLowerCase();
-    }).join(' ');
-  }
-
-  /// Builds the URL for autocomplete suggestions
+  /// Builds the URL for ePostcode Search (autocomplete)
   ///
-  /// Uses the Ideal Postcodes autocomplete endpoint
-  String buildAutocompleteUrl(String query, String apiKey) {
+  /// Uses opensearch=true for partial matching
+  String buildSearchUrl(String query, String apiKey) {
     final encodedQuery = Uri.encodeComponent(query);
-    return '$_baseUrl/autocomplete/addresses?api_key=$apiKey&query=$encodedQuery';
+    return '$_baseUrl/Search?key=$apiKey&phrase=$encodedQuery&opensearch=true';
   }
 
-  /// Builds the URL for looking up a full address by ID
-  String buildAddressLookupUrl(String addressId, String apiKey) {
-    return '$_baseUrl/autocomplete/addresses/$addressId?api_key=$apiKey';
+  /// Builds the URL for ePostcode GetPremise (full address)
+  String buildGetPremiseUrl(String premiseId, String apiKey) {
+    return '$_baseUrl/GetPremise?key=$apiKey&id=$premiseId';
   }
 
   /// Checks if a query is valid for autocomplete

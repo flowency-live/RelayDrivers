@@ -18,7 +18,7 @@ final addressRepositoryProvider = Provider<AddressRepository>((ref) {
 
   return AddressRepository(
     dio: dio,
-    apiKey: ApiKeys.idealPostcodes,
+    apiKey: ApiKeys.ePostcode,
     addressService: ref.watch(addressServiceProvider),
   );
 });

@@ -2,18 +2,19 @@ import 'package:dio/dio.dart';
 import '../domain/models/uk_address.dart';
 import '../domain/services/address_service.dart';
 
-/// Repository for address lookup using Ideal Postcodes API
+/// Repository for address lookup using ePostcode API
 ///
 /// This is the infrastructure layer - it handles HTTP communication
 /// and delegates parsing to the domain service.
 ///
 /// Configuration:
 /// - API keys are stored in the app config (gitignored)
-/// - Uses Ideal Postcodes API (ePostcode compatible)
+/// - Uses ePostcode API: https://wsp.epostcode.com/uk/v1/
 ///
 /// Pricing note:
-/// - Autocomplete queries are FREE
-/// - Only pay when resolving to a full address (~2.4-3.8p per lookup)
+/// - 2.4-3.8p per lookup
+/// - Credits never expire
+/// - Smart duplicate detection (no charge for user errors)
 class AddressRepository {
   final Dio _dio;
   final AddressService _addressService;
@@ -31,18 +32,25 @@ class AddressRepository {
   ///
   /// Returns an empty list if the query is too short (<3 chars)
   /// or if the API call fails.
-  Future<List<AddressSuggestion>> autocomplete(String query) async {
+  ///
+  /// If [premiseOnly] is true, only returns specific addresses (Premise type)
+  /// and not street/area results (Group type).
+  Future<List<AddressSuggestion>> autocomplete(
+    String query, {
+    bool premiseOnly = false,
+  }) async {
     if (!_addressService.isValidQuery(query)) {
       return [];
     }
 
     try {
-      final url = _addressService.buildAutocompleteUrl(query, _apiKey);
+      final url = _addressService.buildSearchUrl(query, _apiKey);
       final response = await _dio.get(url);
 
       if (response.statusCode == 200 && response.data != null) {
         return _addressService.parseAutocompleteSuggestions(
           response.data as Map<String, dynamic>,
+          premiseOnly: premiseOnly,
         );
       }
       return [];
@@ -54,17 +62,17 @@ class AddressRepository {
     }
   }
 
-  /// Fetches the full address details for a given address ID
+  /// Fetches the full address details for a given premise ID
   ///
   /// This is the billable call - only called when user selects a suggestion.
   /// Returns null if the lookup fails.
-  Future<UkAddress?> getAddressById(String addressId) async {
+  Future<UkAddress?> getAddressById(String premiseId) async {
     try {
-      final url = _addressService.buildAddressLookupUrl(addressId, _apiKey);
+      final url = _addressService.buildGetPremiseUrl(premiseId, _apiKey);
       final response = await _dio.get(url);
 
       if (response.statusCode == 200 && response.data != null) {
-        return _addressService.parseAddressById(
+        return _addressService.parseAddressFromPremise(
           response.data as Map<String, dynamic>,
         );
       }

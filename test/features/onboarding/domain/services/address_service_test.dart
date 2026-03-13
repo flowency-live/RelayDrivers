@@ -1,33 +1,31 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:relay_drivers/features/onboarding/domain/services/address_service.dart';
-import 'package:relay_drivers/features/onboarding/domain/models/uk_address.dart';
 
 /// Tests for AddressService
 ///
 /// The AddressService is a pure domain service that parses address data
 /// from the ePostcode API. It has no external dependencies.
 ///
-/// ePostcode API response format for autocomplete:
+/// ePostcode API response format for Search (autocomplete):
 /// {
-///   "result": [
+///   "items": [
 ///     {
-///       "suggestion": "1 High Street, Bournemouth, BH1 1AA",
-///       "id": "abc123"
+///       "key": "prem_12345",
+///       "text": "1 High Street, Bournemouth, BH1 1AA",
+///       "type": "Premise"
 ///     },
 ///     ...
 ///   ]
 /// }
 ///
-/// ePostcode API response format for address lookup by ID:
+/// ePostcode API response format for GetPremise (full address):
 /// {
-///   "result": {
-///     "line_1": "1 High Street",
-///     "line_2": "",
-///     "line_3": "",
-///     "post_town": "BOURNEMOUTH",
-///     "county": "Dorset",
-///     "postcode": "BH1 1AA"
-///   }
+///   "building": "1",
+///   "street": "High Street",
+///   "city": "Bournemouth",
+///   "postcode": "BH1 1AA",
+///   "latitude": 50.7192,
+///   "longitude": -1.8808
 /// }
 void main() {
   late AddressService service;
@@ -37,12 +35,12 @@ void main() {
   });
 
   group('parseAutocompleteSuggestions()', () {
-    test('should parse valid autocomplete response', () {
+    test('should parse valid ePostcode search response', () {
       final response = {
-        'result': [
-          {'suggestion': '1 High Street, Bournemouth, BH1 1AA', 'id': 'abc123'},
-          {'suggestion': '10 High Street, Bournemouth, BH1 1AB', 'id': 'def456'},
-          {'suggestion': '11 High Street, Bournemouth, BH1 1AC', 'id': 'ghi789'},
+        'items': [
+          {'key': 'prem_123', 'text': '1 High Street, Bournemouth, BH1 1AA', 'type': 'Premise'},
+          {'key': 'prem_456', 'text': '10 High Street, Bournemouth, BH1 1AB', 'type': 'Premise'},
+          {'key': 'grp_789', 'text': 'High Street, Bournemouth', 'type': 'Group'},
         ],
       };
 
@@ -50,20 +48,20 @@ void main() {
 
       expect(suggestions.length, equals(3));
       expect(suggestions[0].displayText, equals('1 High Street, Bournemouth, BH1 1AA'));
-      expect(suggestions[0].id, equals('abc123'));
-      expect(suggestions[1].displayText, equals('10 High Street, Bournemouth, BH1 1AB'));
-      expect(suggestions[1].id, equals('def456'));
+      expect(suggestions[0].id, equals('prem_123'));
+      expect(suggestions[0].type, equals('Premise'));
+      expect(suggestions[2].type, equals('Group'));
     });
 
-    test('should return empty list for empty result', () {
-      final response = {'result': <Map<String, dynamic>>[]};
+    test('should return empty list for empty items', () {
+      final response = {'items': <Map<String, dynamic>>[]};
 
       final suggestions = service.parseAutocompleteSuggestions(response);
 
       expect(suggestions, isEmpty);
     });
 
-    test('should return empty list for null result', () {
+    test('should return empty list for null items', () {
       final response = <String, dynamic>{};
 
       final suggestions = service.parseAutocompleteSuggestions(response);
@@ -71,12 +69,12 @@ void main() {
       expect(suggestions, isEmpty);
     });
 
-    test('should handle malformed suggestions gracefully', () {
+    test('should handle malformed items gracefully', () {
       final response = {
-        'result': [
-          {'suggestion': '1 High Street, Bournemouth, BH1 1AA', 'id': 'abc123'},
-          {'suggestion': null, 'id': 'bad1'}, // Missing suggestion
-          {'suggestion': '11 High Street, Bournemouth, BH1 1AC'}, // Missing id
+        'items': [
+          {'key': 'prem_123', 'text': '1 High Street, Bournemouth, BH1 1AA', 'type': 'Premise'},
+          {'key': 'bad1', 'text': null, 'type': 'Premise'}, // Missing text
+          {'text': '11 High Street, Bournemouth', 'type': 'Premise'}, // Missing key
         ],
       };
 
@@ -84,123 +82,128 @@ void main() {
 
       // Should only include valid entries
       expect(suggestions.length, equals(1));
-      expect(suggestions[0].id, equals('abc123'));
+      expect(suggestions[0].id, equals('prem_123'));
+    });
+
+    test('should filter by Premise type only', () {
+      final response = {
+        'items': [
+          {'key': 'prem_123', 'text': '1 High Street, Bournemouth, BH1 1AA', 'type': 'Premise'},
+          {'key': 'grp_456', 'text': 'High Street, Bournemouth', 'type': 'Group'},
+          {'key': 'prem_789', 'text': '2 High Street, Bournemouth, BH1 1AC', 'type': 'Premise'},
+        ],
+      };
+
+      final premiseOnly = service.parseAutocompleteSuggestions(response, premiseOnly: true);
+
+      expect(premiseOnly.length, equals(2));
+      expect(premiseOnly.every((s) => s.type == 'Premise'), isTrue);
     });
   });
 
-  group('parseAddressById()', () {
-    test('should parse full address response', () {
+  group('parseAddressFromPremise()', () {
+    test('should parse full premise response', () {
       final response = {
-        'result': {
-          'line_1': '1 High Street',
-          'line_2': 'Flat 2',
-          'line_3': '',
-          'post_town': 'BOURNEMOUTH',
-          'county': 'Dorset',
-          'postcode': 'BH1 1AA',
-        },
+        'building': '1',
+        'street': 'High Street',
+        'city': 'Bournemouth',
+        'postcode': 'BH1 1AA',
+        'county': 'Dorset',
+        'latitude': 50.7192,
+        'longitude': -1.8808,
       };
 
-      final address = service.parseAddressById(response);
+      final address = service.parseAddressFromPremise(response);
 
       expect(address, isNotNull);
       expect(address!.line1, equals('1 High Street'));
-      expect(address.line2, equals('Flat 2'));
-      expect(address.city, equals('Bournemouth')); // Normalized from UPPERCASE
+      expect(address.city, equals('Bournemouth'));
       expect(address.county, equals('Dorset'));
       expect(address.postcode, equals('BH1 1AA'));
     });
 
-    test('should parse address without line2', () {
+    test('should handle building with name instead of number', () {
       final response = {
-        'result': {
-          'line_1': '10 Main Road',
-          'post_town': 'LONDON',
-          'postcode': 'SW1A 1AA',
-        },
+        'building': 'Rose Cottage',
+        'street': 'High Street',
+        'city': 'Bournemouth',
+        'postcode': 'BH1 1AA',
       };
 
-      final address = service.parseAddressById(response);
+      final address = service.parseAddressFromPremise(response);
 
       expect(address, isNotNull);
-      expect(address!.line1, equals('10 Main Road'));
-      expect(address.line2, isNull);
-      expect(address.city, equals('London'));
-      expect(address.postcode, equals('SW1A 1AA'));
+      expect(address!.line1, equals('Rose Cottage, High Street'));
     });
 
-    test('should combine line_2 and line_3 if both present', () {
+    test('should handle missing building', () {
       final response = {
-        'result': {
-          'line_1': '1 High Street',
-          'line_2': 'Flat 2',
-          'line_3': 'Building A',
-          'post_town': 'BOURNEMOUTH',
-          'postcode': 'BH1 1AA',
-        },
+        'street': 'High Street',
+        'city': 'Bournemouth',
+        'postcode': 'BH1 1AA',
       };
 
-      final address = service.parseAddressById(response);
+      final address = service.parseAddressFromPremise(response);
 
       expect(address, isNotNull);
-      expect(address!.line1, equals('1 High Street'));
-      expect(address.line2, equals('Flat 2, Building A'));
+      expect(address!.line1, equals('High Street'));
     });
 
-    test('should return null for empty result', () {
-      final response = <String, dynamic>{};
+    test('should handle flat/unit in building', () {
+      final response = {
+        'building': 'Flat 2, Rose House',
+        'street': 'High Street',
+        'city': 'Bournemouth',
+        'postcode': 'BH1 1AA',
+      };
 
-      final address = service.parseAddressById(response);
+      final address = service.parseAddressFromPremise(response);
 
-      expect(address, isNull);
+      expect(address, isNotNull);
+      expect(address!.line1, equals('Flat 2, Rose House'));
+      expect(address.line2, equals('High Street'));
     });
 
     test('should return null for missing required fields', () {
       final response = {
-        'result': {
-          'line_1': '1 High Street',
-          // Missing post_town and postcode
-        },
+        'building': '1',
+        'street': 'High Street',
+        // Missing city and postcode
       };
 
-      final address = service.parseAddressById(response);
+      final address = service.parseAddressFromPremise(response);
 
       expect(address, isNull);
     });
 
-    test('should handle empty line_2 string', () {
-      final response = {
-        'result': {
-          'line_1': '1 High Street',
-          'line_2': '',
-          'post_town': 'BOURNEMOUTH',
-          'postcode': 'BH1 1AA',
-        },
-      };
+    test('should return null for empty response', () {
+      final response = <String, dynamic>{};
 
-      final address = service.parseAddressById(response);
+      final address = service.parseAddressFromPremise(response);
 
-      expect(address, isNotNull);
-      expect(address!.line2, isNull); // Empty string converted to null
+      expect(address, isNull);
     });
   });
 
-  group('buildAutocompleteUrl()', () {
-    test('should build correct URL with query', () {
+  group('buildSearchUrl()', () {
+    test('should build correct ePostcode search URL', () {
       const apiKey = 'test_key_123';
       const query = '1 high street';
 
-      final url = service.buildAutocompleteUrl(query, apiKey);
+      final url = service.buildSearchUrl(query, apiKey);
 
-      expect(url, contains('api_key=test_key_123'));
-      expect(url, contains('query=1%20high%20street')); // URL encoded
+      expect(url, contains('wsp.epostcode.com'));
+      expect(url, contains('/Search'));
+      expect(url, contains('key=test_key_123'));
+      expect(url, contains('phrase=1%20high%20street')); // URL encoded
+      expect(url, contains('opensearch=true'));
     });
 
     test('should handle special characters in query', () {
       const apiKey = 'test_key_123';
       const query = "Flat 1/2, O'Brien House";
 
-      final url = service.buildAutocompleteUrl(query, apiKey);
+      final url = service.buildSearchUrl(query, apiKey);
 
       // Spaces, commas, and slashes should be URL encoded
       expect(url, contains('%20')); // Space encoded
@@ -209,15 +212,17 @@ void main() {
     });
   });
 
-  group('buildAddressLookupUrl()', () {
-    test('should build correct URL with address ID', () {
+  group('buildGetPremiseUrl()', () {
+    test('should build correct ePostcode GetPremise URL', () {
       const apiKey = 'test_key_123';
-      const addressId = 'paf_12345678';
+      const premiseId = 'prem_12345678';
 
-      final url = service.buildAddressLookupUrl(addressId, apiKey);
+      final url = service.buildGetPremiseUrl(premiseId, apiKey);
 
-      expect(url, contains('api_key=test_key_123'));
-      expect(url, contains(addressId));
+      expect(url, contains('wsp.epostcode.com'));
+      expect(url, contains('/GetPremise'));
+      expect(url, contains('key=test_key_123'));
+      expect(url, contains('id=prem_12345678'));
     });
   });
 
@@ -239,13 +244,4 @@ void main() {
       expect(service.isValidQuery('  abc  '), isTrue);
     });
   });
-}
-
-/// Test double for AddressSuggestion
-/// The actual implementation is in address_service.dart
-class AddressSuggestionTest {
-  final String displayText;
-  final String id;
-
-  AddressSuggestionTest({required this.displayText, required this.id});
 }
