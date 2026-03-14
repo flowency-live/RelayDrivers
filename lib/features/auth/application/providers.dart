@@ -189,6 +189,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = const AuthUnauthenticated();
   }
 
+  /// Set authenticated state directly (used by invite flow)
+  void setAuthenticated(DriverUser user) {
+    state = AuthAuthenticated(user: user);
+  }
+
   String _parseError(dynamic error) {
     if (error is Exception) {
       return error.toString().replaceAll('Exception: ', '');
