@@ -107,6 +107,8 @@ class _InviteEntryPageState extends ConsumerState<InviteEntryPage> {
 
     ref.listen<InviteAuthState>(inviteAuthStateProvider, (previous, next) {
       if (next is InviteAuthSuccess) {
+        // Update main auth state with the authenticated user
+        ref.read(authStateProvider.notifier).setAuthenticated(next.driver);
         // Navigate to onboarding on success
         context.go(AppRoutes.onboarding);
       } else if (next is InviteAuthOtpSent) {
@@ -436,10 +438,20 @@ class _InviteEntryPageState extends ConsumerState<InviteEntryPage> {
                 style: theme.textTheme.bodyMedium,
                 textAlign: TextAlign.center,
               ),
-              if (isExpired || isUsed) ...[
+              if (isExpired) ...[
                 const SizedBox(height: 8),
                 Text(
                   'Contact your operator to get a new invite code.',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+              if (isUsed) ...[
+                const SizedBox(height: 8),
+                Text(
+                  'If you already started setting up your account, try logging in with your phone number.',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -451,14 +463,35 @@ class _InviteEntryPageState extends ConsumerState<InviteEntryPage> {
         ),
         const SizedBox(height: 24),
 
-        // Try again button
-        FilledButton(
-          onPressed: _handleReset,
-          child: const Padding(
-            padding: EdgeInsets.symmetric(vertical: 16),
-            child: Text('Try Again'),
+        // Login with phone button (for already used invites)
+        if (isUsed) ...[
+          FilledButton.icon(
+            onPressed: () => context.go(AppRoutes.phoneLogin),
+            icon: const Icon(Icons.phone),
+            label: const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Text('Log in with Phone Number'),
+            ),
           ),
-        ),
+          const SizedBox(height: 12),
+          // Try again with different code
+          OutlinedButton(
+            onPressed: _handleReset,
+            child: const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Text('Try a Different Code'),
+            ),
+          ),
+        ] else ...[
+          // Try again button
+          FilledButton(
+            onPressed: _handleReset,
+            child: const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Text('Try Again'),
+            ),
+          ),
+        ],
       ],
     );
   }

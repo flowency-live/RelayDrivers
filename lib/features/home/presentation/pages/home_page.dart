@@ -5,6 +5,8 @@ import '../../../auth/application/providers.dart';
 import '../../../auth/domain/models/driver_user.dart' as driver_user;
 import '../../../profile/application/profile_providers.dart';
 import '../../../notifications/presentation/widgets/notification_bell.dart';
+import '../../../onboarding/application/onboarding_providers.dart';
+import '../../../onboarding/domain/services/onboarding_service.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/widgets/pwa_install_banner.dart';
 import '../widgets/operator_selector.dart';
@@ -46,12 +48,23 @@ class _HomePageState extends ConsumerState<HomePage> {
     final user = ref.watch(currentUserProvider);
     final authService = ref.watch(authServiceProvider);
     final profile = ref.watch(currentProfileProvider);
+    final onboardingProgress = ref.watch(onboardingProgressProvider);
 
     if (user == null) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       );
     }
+
+    // Calculate completion status for each section
+    final profileComplete = onboardingProgress.phase1Complete;
+    final vehiclesComplete = onboardingProgress.steps
+        .where((s) => s.id == 'vehicle')
+        .any((s) => s.status == OnboardingStepStatus.complete);
+    final documentsComplete = onboardingProgress.steps
+        .where((s) => s.phase == 1 || s.phase == 2)
+        .where((s) => s.id.contains('licence') || s.id.contains('insurance'))
+        .every((s) => s.status == OnboardingStepStatus.complete);
 
     return Scaffold(
       appBar: AppBar(
@@ -89,44 +102,32 @@ class _HomePageState extends ConsumerState<HomePage> {
             ),
             const SizedBox(height: 24),
 
-            // Quick actions grid
-            GridView.count(
-              crossAxisCount: 2,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              mainAxisSpacing: 16,
-              crossAxisSpacing: 16,
-              childAspectRatio: 1.2,
-              children: [
-                _QuickActionCard(
-                  icon: Icons.person,
-                  title: 'My Profile',
-                  subtitle: 'View and edit details',
-                  color: const Color(0xFF4361EE),
-                  onTap: () => context.push(AppRoutes.profile),
-                ),
-                _QuickActionCard(
-                  icon: Icons.directions_car,
-                  title: 'Vehicles',
-                  subtitle: 'Manage your vehicles',
-                  color: const Color(0xFF2ECC71),
-                  onTap: () => context.push(AppRoutes.vehicles),
-                ),
-                _QuickActionCard(
-                  icon: Icons.description,
-                  title: 'Documents',
-                  subtitle: 'Upload documents',
-                  color: const Color(0xFFF39C12),
-                  onTap: () => context.push(AppRoutes.documents),
-                ),
-                _QuickActionCard(
-                  icon: Icons.business,
-                  title: 'My Operators',
-                  subtitle: 'Manage operators',
-                  color: const Color(0xFF3498DB),
-                  onTap: () => context.push(AppRoutes.myOperators),
-                ),
-              ],
+            // Quick actions - full-width stacked cards with completion status
+            _FullWidthActionCard(
+              icon: Icons.person,
+              title: 'My Profile',
+              subtitle: 'View and edit details',
+              color: const Color(0xFF4361EE),
+              isComplete: profileComplete,
+              onTap: () => context.push(AppRoutes.profile),
+            ),
+            const SizedBox(height: 12),
+            _FullWidthActionCard(
+              icon: Icons.directions_car,
+              title: 'Vehicles',
+              subtitle: 'Manage your vehicles',
+              color: const Color(0xFF2ECC71),
+              isComplete: vehiclesComplete,
+              onTap: () => context.push(AppRoutes.vehicles),
+            ),
+            const SizedBox(height: 12),
+            _FullWidthActionCard(
+              icon: Icons.description,
+              title: 'Documents',
+              subtitle: 'Upload documents',
+              color: const Color(0xFFF39C12),
+              isComplete: documentsComplete,
+              onTap: () => context.push(AppRoutes.documents),
             ),
 
             const SizedBox(height: 32),
@@ -180,65 +181,6 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 }
 
-class _QuickActionCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _QuickActionCard({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Theme.of(context).colorScheme.surface,
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: color.withAlpha(25),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(icon, color: color, size: 24),
-              ),
-              const Spacer(),
-              Text(
-                title,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                subtitle,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context)
-                          .textTheme
-                          .bodyMedium
-                          ?.color
-                          ?.withAlpha(179),
-                    ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 class _InfoRow extends StatelessWidget {
   final String label;
@@ -265,6 +207,124 @@ class _InfoRow extends StatelessWidget {
               value,
               style: Theme.of(context).textTheme.bodyMedium,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Full-width action card with completion badge
+class _FullWidthActionCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Color color;
+  final bool isComplete;
+  final VoidCallback onTap;
+
+  const _FullWidthActionCard({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.color,
+    required this.isComplete,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Theme.of(context).colorScheme.surface,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              // Icon container
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: color.withAlpha(25),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: color, size: 28),
+              ),
+              const SizedBox(width: 16),
+              // Title and subtitle
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.color
+                                ?.withAlpha(179),
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+              // Completion badge
+              _CompletionBadge(isComplete: isComplete),
+              const SizedBox(width: 8),
+              // Arrow icon
+              Icon(
+                Icons.chevron_right,
+                color: Theme.of(context).textTheme.bodyMedium?.color?.withAlpha(128),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Completion status badge
+class _CompletionBadge extends StatelessWidget {
+  final bool isComplete;
+
+  const _CompletionBadge({required this.isComplete});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isComplete ? const Color(0xFF2ECC71) : const Color(0xFFF39C12);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withAlpha(25),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            isComplete ? Icons.check_circle : Icons.pending,
+            size: 14,
+            color: color,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            isComplete ? 'Complete' : 'Required',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: color,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 11,
+                ),
           ),
         ],
       ),
