@@ -159,67 +159,18 @@ class _HomePageState extends ConsumerState<HomePage> {
               },
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
 
-            // Driver info card
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Driver Information',
-                    style: Theme.of(context).textTheme.titleMedium,
+            // Version number
+            Text(
+              'v1.0.4',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.outline,
                   ),
-                  const SizedBox(height: 12),
-                  _InfoRow(label: 'Name', value: user.fullName),
-                  _InfoRow(label: 'Email', value: user.email),
-                  if (user.phone != null)
-                    _InfoRow(label: 'Phone', value: user.phone!),
-                  _InfoRow(label: 'Driver ID', value: user.driverId),
-                ],
-              ),
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-
-class _InfoRow extends StatelessWidget {
-  final String label;
-  final String value;
-
-  const _InfoRow({required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 80,
-            child: Text(
-              label,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-          ),
-        ],
       ),
     );
   }

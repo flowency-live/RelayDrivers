@@ -225,7 +225,7 @@ class _InviteEntryPageState extends ConsumerState<InviteEntryPage> {
         const SizedBox(height: 16),
         // Version number
         Text(
-          'v1.0.3',
+          'v1.0.4',
           textAlign: TextAlign.center,
           style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.outline,
@@ -315,6 +315,15 @@ class _InviteEntryPageState extends ConsumerState<InviteEntryPage> {
         TextButton(
           onPressed: _handleReset,
           child: const Text('Use Different Invite Code'),
+        ),
+        const SizedBox(height: 16),
+        // Version number
+        Text(
+          'v1.0.4',
+          textAlign: TextAlign.center,
+          style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.outline,
+              ),
         ),
       ],
     );
