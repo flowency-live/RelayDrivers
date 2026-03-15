@@ -222,6 +222,15 @@ class _InviteEntryPageState extends ConsumerState<InviteEntryPage> {
           onPressed: () => context.go(AppRoutes.phoneLogin),
           child: const Text('Already have an account? Sign in'),
         ),
+        const SizedBox(height: 16),
+        // Version number
+        Text(
+          'v1.0.1',
+          textAlign: TextAlign.center,
+          style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.outline,
+              ),
+        ),
       ],
     );
   }

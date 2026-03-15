@@ -207,6 +207,15 @@ class _PhoneLoginPageState extends ConsumerState<PhoneLoginPage> {
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodySmall,
               ),
+              const SizedBox(height: 16),
+              // Version number
+              Text(
+                'v1.0.1',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.outline,
+                    ),
+              ),
             ],
           ),
         ),
