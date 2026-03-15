@@ -210,7 +210,7 @@ class _PhoneLoginPageState extends ConsumerState<PhoneLoginPage> {
               const SizedBox(height: 16),
               // Version number
               Text(
-                'v1.0.2',
+                'v1.0.3',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Theme.of(context).colorScheme.outline,
