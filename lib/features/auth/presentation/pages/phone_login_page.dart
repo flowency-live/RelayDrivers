@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../config/environment.dart';
 import '../../../../core/router/app_router.dart';
 import '../../application/providers.dart';
 import '../../domain/models/otp_models.dart';
@@ -210,7 +211,7 @@ class _PhoneLoginPageState extends ConsumerState<PhoneLoginPage> {
               const SizedBox(height: 16),
               // Version number
               Text(
-                'v1.0.4',
+                'v$appVersion',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Theme.of(context).colorScheme.outline,

@@ -23,7 +23,7 @@ class StatusInfoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final statusConfig = _getStatusConfig(status);
-    final company = companyName ?? 'Relay';
+    final company = companyName ?? 'your operator';
 
     return Container(
       width: double.infinity,
