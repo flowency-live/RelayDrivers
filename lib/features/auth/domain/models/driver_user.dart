@@ -78,12 +78,12 @@ class DriverUser {
   bool get isPending => operators.isEmpty;
 
   /// Check if driver is in onboarding state
-  /// v4.0: First check if any operator has 'invited' status (needs onboarding)
+  /// v4.0: Check if any operator has 'invited' or 'onboarding' status
   /// Legacy fallback: check status field
   bool get isOnboarding {
-    // v4.0: Check if any operator is in invited state (needs onboarding confirmation)
+    // v4.0: Check if any operator is in invited OR onboarding state
     if (operators.isNotEmpty) {
-      return operators.any((op) => op.isInvited);
+      return operators.any((op) => op.isInvited || op.isOnboarding);
     }
     // Legacy fallback
     return status == DriverStatus.onboarding;
@@ -203,7 +203,7 @@ class DriverUser {
 /// Represents a driver's relationship with a single operator
 class OperatorAccess {
   final String tenantId;
-  final String status; // 'active', 'invited', 'revoked'
+  final String status; // 'active', 'invited', 'onboarding', 'revoked'
   final List<String> scopes;
 
   const OperatorAccess({
@@ -214,6 +214,7 @@ class OperatorAccess {
 
   bool get isActive => status == 'active';
   bool get isInvited => status == 'invited';
+  bool get isOnboarding => status == 'onboarding';
   bool get isRevoked => status == 'revoked';
 
   factory OperatorAccess.fromJson(Map<String, dynamic> json) {

@@ -75,6 +75,11 @@ class _HomePageState extends ConsumerState<HomePage> {
             icon: const Icon(Icons.logout),
             onPressed: () async {
               await ref.read(authStateProvider.notifier).logout();
+              // Explicitly navigate to phone login after logout
+              // Don't rely on router redirect which may cause race conditions
+              if (context.mounted) {
+                context.go(AppRoutes.phoneLogin);
+              }
             },
           ),
         ],
@@ -91,15 +96,21 @@ class _HomePageState extends ConsumerState<HomePage> {
             const OperatorSelector(),
 
             // Greeting
+            // TODO(multi-tenant): When supporting multiple operators, this should
+            // show the currently active operator's company name. Consider adding
+            // an operator context switcher for drivers with multiple operators.
             Text(
               authService.getGreeting(user),
               style: Theme.of(context).textTheme.headlineMedium,
             ),
-            const SizedBox(height: 8),
-            Text(
-              'Welcome to Relay Drivers',
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
+            // Show tenant company name if available, otherwise just skip (greeting is enough)
+            if (profile?.tenant?.companyName != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Driving with ${profile!.tenant!.companyName}',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+            ],
             const SizedBox(height: 24),
 
             // Quick actions - full-width stacked cards with completion status

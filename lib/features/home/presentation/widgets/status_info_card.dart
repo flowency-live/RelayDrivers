@@ -103,8 +103,8 @@ class StatusInfoCard extends StatelessWidget {
                 ),
           ),
 
-          // Contact options (for pending/suspended)
-          if (status == 'pending' || status == 'suspended') ...[
+          // Contact options (for onboarding/pending/suspended)
+          if (status == 'onboarding' || status == 'pending' || status == 'suspended') ...[
             const SizedBox(height: 16),
             const Divider(height: 1),
             const SizedBox(height: 12),
@@ -234,7 +234,7 @@ class StatusInfoCard extends StatelessWidget {
       'active' =>
         'Your account is active and you can start accepting jobs.',
       'onboarding' =>
-        'Complete your profile setup to start accepting jobs with $company.',
+        'You have been invited to drive with $company. Please complete all required information below.',
       'pending' =>
         'Your application is being reviewed by $company. We\'ll notify you once approved.',
       'suspended' =>
