@@ -110,8 +110,10 @@ class _InviteEntryPageState extends ConsumerState<InviteEntryPage> {
       if (next is InviteAuthSuccess) {
         // Update main auth state with the authenticated user
         ref.read(authStateProvider.notifier).setAuthenticated(next.driver);
-        // Navigate to onboarding on success
-        context.go(AppRoutes.onboarding);
+        // Reset invite state to prevent re-triggering on rebuild
+        ref.read(inviteAuthStateProvider.notifier).reset();
+        // Navigate to home (router will handle onboarding redirect if needed)
+        context.go(AppRoutes.home);
       } else if (next is InviteAuthOtpSent) {
         // Focus OTP field when OTP is sent
         _otpFocusNode.requestFocus();
