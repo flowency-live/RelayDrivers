@@ -161,13 +161,14 @@ class _HomePageState extends ConsumerState<HomePage> {
 
             const SizedBox(height: 24),
 
-            // Version number
-            Text(
-              'v1.0.4',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.outline,
-                  ),
+            // Version number (centered)
+            Center(
+              child: Text(
+                'v1.0.4',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.outline,
+                    ),
+              ),
             ),
           ],
         ),
