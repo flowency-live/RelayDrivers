@@ -377,6 +377,14 @@ class PhoneAuthNotifier extends StateNotifier<PhoneAuthState> {
   }
 
   String _parseError(dynamic error) {
+    // Try to extract error message from DioException response
+    if (error is DioException && error.response?.data != null) {
+      final data = error.response!.data;
+      if (data is Map && data['error'] != null) {
+        return data['error'].toString();
+      }
+    }
+
     final errorStr = error.toString();
 
     // Parse DioException response

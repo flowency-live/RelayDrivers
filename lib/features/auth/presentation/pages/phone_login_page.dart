@@ -149,8 +149,11 @@ class _PhoneLoginPageState extends ConsumerState<PhoneLoginPage> {
         _otpFocusNode.requestFocus();
       }
       if (next is PhoneAuthSuccess) {
-        // Auth successful - trigger main auth state check
-        ref.read(authStateProvider.notifier).checkSession();
+        // Auth successful - set authenticated state directly (not checkSession!)
+        // Using checkSession() causes AuthLoading which triggers router redirect to splash
+        if (next.driver != null) {
+          ref.read(authStateProvider.notifier).setAuthenticated(next.driver!);
+        }
         // Offer biometric setup, then navigate
         _offerBiometricSetup();
       }
