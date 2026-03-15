@@ -7,6 +7,7 @@ import '../../../profile/application/profile_providers.dart';
 import '../../../notifications/presentation/widgets/notification_bell.dart';
 import '../../../onboarding/application/onboarding_providers.dart';
 import '../../../onboarding/domain/services/onboarding_service.dart';
+import '../../../../config/environment.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/widgets/pwa_install_banner.dart';
 import '../widgets/operator_selector.dart';
@@ -164,7 +165,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             // Version number (centered)
             Center(
               child: Text(
-                'v1.0.5',
+                'v$appVersion',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Theme.of(context).colorScheme.outline,
                     ),

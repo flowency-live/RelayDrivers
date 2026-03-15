@@ -44,3 +44,7 @@ class EnvironmentConfig {
 
 /// Current environment - set via build configuration
 const currentEnvironment = EnvironmentConfig.dev;
+
+/// App version - injected via --dart-define=APP_VERSION at build time
+/// Falls back to 'dev' for local development
+const String appVersion = String.fromEnvironment('APP_VERSION', defaultValue: 'dev');

@@ -45,8 +45,14 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Extract version from pubspec.yaml
+        id: version
+        run: |
+          VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //' | cut -d'+' -f1)
+          echo "APP_VERSION=$VERSION" >> $GITHUB_OUTPUT
+
       - name: Build web release
-        run: flutter build web --release --base-href "/" --dart-define=EPOSTCODE_API_KEY=${{ secrets.EPOSTCODE_API_KEY }}
+        run: flutter build web --release --base-href "/" --dart-define=EPOSTCODE_API_KEY=${{ secrets.EPOSTCODE_API_KEY }} --dart-define=APP_VERSION=${{ steps.version.outputs.APP_VERSION }}
 
       - name: Deploy to Firebase Hosting
         uses: FirebaseExtended/action-hosting-deploy@v0
