@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/dio_client.dart';
 import '../domain/models/auth_state.dart';
@@ -54,6 +55,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
       if (_authService.canAccessApp(user)) {
         state = AuthAuthenticated(user: user);
       } else {
+        state = const AuthUnauthenticated();
+      }
+    } on DioException catch (e) {
+      // Only treat 401 as definitely unauthenticated
+      if (e.response?.statusCode == 401) {
+        await _repository.clearTokens();
+        state = const AuthUnauthenticated();
+      } else {
+        // Network errors - can't verify session
+        // Force login for safety (can't access app without network anyway)
         state = const AuthUnauthenticated();
       }
     } catch (e) {
@@ -503,14 +514,24 @@ class BiometricAuthNotifier extends StateNotifier<BiometricAuthState> {
 
   /// Validate stored session token with backend
   /// Returns true if session is valid, false if expired/invalid
+  /// Note: Network errors return true (optimistic) - don't log out on network issues
   Future<bool> _validateStoredSession() async {
     try {
       await _repository.getSession();
       return true;
+    } on DioException catch (e) {
+      // Only treat 401 Unauthorized as invalid session
+      // Network errors, timeouts, etc. should NOT log the user out
+      if (e.response?.statusCode == 401) {
+        await _dioClient.clearTokens();
+        return false;
+      }
+      // For other errors (network, timeout), assume session is valid
+      // User will see error on next API call and handle appropriately
+      return true;
     } catch (e) {
-      // Session invalid (401, network error, etc.)
-      await _dioClient.clearTokens();
-      return false;
+      // Unknown errors - assume session is valid (optimistic)
+      return true;
     }
   }
 
