@@ -446,12 +446,15 @@ final biometricAvailabilityProvider = FutureProvider<BiometricAvailability>((ref
 class BiometricAuthNotifier extends StateNotifier<BiometricAuthState> {
   final BiometricService _biometricService;
   final DioClient _dioClient;
+  final AuthRepository _repository;
 
   BiometricAuthNotifier({
     required BiometricService biometricService,
     required DioClient dioClient,
+    required AuthRepository repository,
   })  : _biometricService = biometricService,
         _dioClient = dioClient,
+        _repository = repository,
         super(const BiometricAuthInitial());
 
   /// Check if biometric unlock is needed
@@ -478,7 +481,16 @@ class BiometricAuthNotifier extends StateNotifier<BiometricAuthState> {
       if (!requiresAuth) {
         // Auto-restore session without biometric prompt
         await _dioClient.saveTokens(accessToken: token, refreshToken: null);
-        state = const BiometricAuthSuccess();
+
+        // Validate session with backend before declaring success
+        final isValid = await _validateStoredSession();
+        if (isValid) {
+          state = const BiometricAuthSuccess();
+        } else {
+          // Session expired - clear stored token and require fresh login
+          await _biometricService.clearSessionToken();
+          state = const BiometricAuthNotRequired();
+        }
         return;
       }
 
@@ -486,6 +498,19 @@ class BiometricAuthNotifier extends StateNotifier<BiometricAuthState> {
       state = const BiometricAuthRequired();
     } catch (e) {
       state = BiometricAuthError(message: e.toString());
+    }
+  }
+
+  /// Validate stored session token with backend
+  /// Returns true if session is valid, false if expired/invalid
+  Future<bool> _validateStoredSession() async {
+    try {
+      await _repository.getSession();
+      return true;
+    } catch (e) {
+      // Session invalid (401, network error, etc.)
+      await _dioClient.clearTokens();
+      return false;
     }
   }
 
@@ -501,7 +526,18 @@ class BiometricAuthNotifier extends StateNotifier<BiometricAuthState> {
         final token = await _biometricService.getSessionToken();
         if (token != null) {
           await _dioClient.saveTokens(accessToken: token, refreshToken: null);
-          state = const BiometricAuthSuccess();
+
+          // Validate session with backend before declaring success
+          final isValid = await _validateStoredSession();
+          if (isValid) {
+            state = const BiometricAuthSuccess();
+          } else {
+            // Session expired - clear and prompt for fresh login
+            await _biometricService.clearSessionToken();
+            state = const BiometricAuthError(
+              message: 'Session expired. Please login again.',
+            );
+          }
         } else {
           state = const BiometricAuthError(message: 'Session expired. Please login again.');
         }
@@ -584,10 +620,12 @@ final biometricAuthStateProvider =
     StateNotifierProvider<BiometricAuthNotifier, BiometricAuthState>((ref) {
   final biometricService = ref.watch(biometricServiceProvider);
   final dioClient = ref.watch(dioClientProvider);
+  final repository = ref.watch(authRepositoryProvider);
 
   return BiometricAuthNotifier(
     biometricService: biometricService,
     dioClient: dioClient,
+    repository: repository,
   );
 });
 

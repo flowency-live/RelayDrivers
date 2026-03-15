@@ -190,30 +190,49 @@ class _BiometricUnlockPageState extends ConsumerState<BiometricUnlockPage> {
   }
 
   Widget _buildError(String message) {
+    // Check if this is a session expiry error
+    final isSessionExpired = message.toLowerCase().contains('session') ||
+        message.toLowerCase().contains('expired');
+
     return Column(
       children: [
         Container(
           padding: const EdgeInsets.all(32),
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.error.withAlpha(25),
+            color: isSessionExpired
+                ? Theme.of(context).colorScheme.primary.withAlpha(25)
+                : Theme.of(context).colorScheme.error.withAlpha(25),
             shape: BoxShape.circle,
           ),
           child: Icon(
-            Icons.warning_amber,
+            isSessionExpired ? Icons.lock_clock : Icons.warning_amber,
             size: 64,
-            color: Theme.of(context).colorScheme.error,
+            color: isSessionExpired
+                ? Theme.of(context).colorScheme.primary
+                : Theme.of(context).colorScheme.error,
           ),
         ),
         const SizedBox(height: 16),
         Text(
-          message,
+          isSessionExpired ? 'Your session has expired' : message,
           textAlign: TextAlign.center,
-          style: TextStyle(color: Theme.of(context).colorScheme.error),
+          style: Theme.of(context).textTheme.titleMedium,
         ),
+        if (isSessionExpired) ...[
+          const SizedBox(height: 8),
+          Text(
+            'Please sign in again to continue',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).textTheme.bodySmall?.color,
+                ),
+          ),
+        ],
         const SizedBox(height: 24),
-        OutlinedButton(
+        ElevatedButton.icon(
           onPressed: _skipToLogin,
-          child: const Text('Sign in with phone'),
+          icon: const Icon(Icons.phone),
+          label: const Text('Sign in with phone'),
         ),
       ],
     );
