@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../domain/models/onboarding_data.dart';
 import '../domain/services/dvla_licence_service.dart';
+import '../../auth/application/providers.dart';
 import '../../profile/application/profile_providers.dart';
 import '../../profile/domain/models/driver_profile.dart';
 import '../../vehicles/application/vehicle_providers.dart';
@@ -169,7 +170,19 @@ class OnboardingWizardNotifier extends StateNotifier<OnboardingWizardState> {
     state = state.copyWith(isLoading: true);
 
     try {
-      // Load profile data
+      // FIRST: Pre-fill from JWT user (always available after login)
+      // This ensures firstName/lastName are available immediately
+      final user = _ref.read(currentUserProvider);
+      if (user != null) {
+        state = state.copyWith(
+          data: state.data.copyWith(
+            firstName: user.firstName,
+            lastName: user.lastName,
+          ),
+        );
+      }
+
+      // THEN: Load profile data (may have more fields like address, DOB)
       final profileState = _ref.read(profileStateProvider);
       if (profileState is ProfileLoaded) {
         final profile = profileState.profile;

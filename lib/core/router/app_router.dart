@@ -143,14 +143,23 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         return null; // Allow navigation to wherever they want
       }
 
-      // If onboarding status and not complete, keep user in onboarding flow
-      if (isOnboardingStatus && !isOnboardingComplete && !isOnboardingRoute && !isOnboardingSubPage) {
-        return AppRoutes.onboarding;
+      // If onboarding status and not complete, allow navigation to home and sub-pages
+      // The home page shows 3 tiles (Profile, Vehicles, Documents) with completion indicators
+      // Users can navigate from home into each section to complete their onboarding
+      if (isOnboardingStatus && !isOnboardingComplete) {
+        // Allow home, onboarding sub-pages, and the wizard itself
+        if (isHomeRoute || isOnboardingSubPage || isOnboardingRoute) {
+          return null;
+        }
+        // Redirect auth/splash pages to home (not wizard)
+        if (isAuthRoute || isSplashRoute) {
+          return AppRoutes.home;
+        }
       }
 
-      // If authenticated and on auth/splash pages, redirect to appropriate home
+      // If authenticated and on auth/splash pages, redirect to home
       if (isAuthRoute || isSplashRoute) {
-        return isOnboardingStatus ? AppRoutes.onboarding : AppRoutes.home;
+        return AppRoutes.home;
       }
 
       return null;
