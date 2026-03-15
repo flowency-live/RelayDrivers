@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/application/providers.dart';
 import '../../../auth/domain/models/driver_user.dart';
-import '../../../../core/network/dio_client.dart';
 
 /// My Operators page - shows all operators the driver has relationships with
 /// Allows switching active operator and viewing operator details
@@ -84,7 +83,7 @@ class MyOperatorsPage extends ConsumerWidget {
               ...activeOperators.map((op) => _OperatorCard(
                     operator: op,
                     isCurrentOperator: op.tenantId == user.activeOperator,
-                    onTap: () => _switchOperator(context, ref, op.tenantId),
+                    onTap: () => _showSwitchingComingSoon(context),
                     onManageDocuments: () => _manageDocuments(context, op.tenantId),
                   )),
               const SizedBox(height: 24),
@@ -172,18 +171,14 @@ class MyOperatorsPage extends ConsumerWidget {
     );
   }
 
-  Future<void> _switchOperator(BuildContext context, WidgetRef ref, String operatorId) async {
-    final dioClient = ref.read(dioClientProvider);
-    await dioClient.setActiveOperator(operatorId);
-
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Switched to operator: $operatorId'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
+  void _showSwitchingComingSoon(BuildContext context) {
+    // TODO: Multi-operator switching will require backend JWT refresh
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Multi-operator switching coming soon'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   void _manageDocuments(BuildContext context, String operatorId) {

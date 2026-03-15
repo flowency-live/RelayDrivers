@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/application/providers.dart';
 import '../../../auth/domain/models/driver_user.dart';
-import '../../../../core/network/dio_client.dart';
 
 /// Operator selector widget - shows when driver has multiple operators
 /// Allows switching between operators for multi-operator drivers
@@ -114,36 +113,20 @@ class OperatorSelector extends ConsumerWidget {
         operators: operators,
         onSelect: (operatorId) async {
           Navigator.pop(context);
-          await _switchOperator(context, ref, user, operatorId);
+          _showSwitchingComingSoon(context);
         },
       ),
     );
   }
 
-  Future<void> _switchOperator(
-    BuildContext context,
-    WidgetRef ref,
-    DriverUser user,
-    String operatorId,
-  ) async {
-    // Update local storage for the DioClient
-    final dioClient = ref.read(dioClientProvider);
-    await dioClient.setActiveOperator(operatorId);
-
-    // Show confirmation
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Switched to operator: $operatorId'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
-
-    // TODO: In a full implementation, we would also:
-    // 1. Call backend to get a new JWT with updated activeOperator
-    // 2. Update the user state with the new activeOperator
-    // For now, the X-Operator-Id header will be used for API calls
+  void _showSwitchingComingSoon(BuildContext context) {
+    // TODO: Multi-operator switching will require backend JWT refresh
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Multi-operator switching coming soon'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 }
 
