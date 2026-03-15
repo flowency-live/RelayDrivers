@@ -225,7 +225,7 @@ class _InviteEntryPageState extends ConsumerState<InviteEntryPage> {
         const SizedBox(height: 16),
         // Version number
         Text(
-          'v1.0.1',
+          'v1.0.2',
           textAlign: TextAlign.center,
           style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.outline,
