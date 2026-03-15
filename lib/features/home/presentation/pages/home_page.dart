@@ -164,7 +164,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             // Version number (centered)
             Center(
               child: Text(
-                'v1.0.4',
+                'v1.0.5',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Theme.of(context).colorScheme.outline,
                     ),
