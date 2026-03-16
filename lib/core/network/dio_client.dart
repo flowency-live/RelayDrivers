@@ -61,6 +61,7 @@ class DioClient {
     RequestInterceptorHandler handler,
   ) async {
     final token = await _secureStorage.read(key: accessTokenKey);
+    print('[DioClient] _attachToken for ${options.path}: token=${token != null ? 'present (${token.length} chars)' : 'NULL'}, lastSave=${_lastTokenSaveTime?.toIso8601String() ?? 'never'}');
     if (token != null) {
       options.headers['Authorization'] = 'Bearer $token';
     }
@@ -81,28 +82,34 @@ class DioClient {
       final requestKey =
           '${error.requestOptions.method}:${error.requestOptions.path}';
 
+      print('[DioClient] 401 on $requestKey, lastSave=${_lastTokenSaveTime?.toIso8601String() ?? 'never'}, alreadyRetried=${_retriedRequests.contains(requestKey)}');
+
       // Check if we're within the grace period after a token save.
       // On web, secure storage writes are async and may not be immediately readable.
       // This prevents logout loop when navigating to home immediately after login.
       if (_lastTokenSaveTime != null &&
           !_retriedRequests.contains(requestKey)) {
         final timeSinceSave = DateTime.now().difference(_lastTokenSaveTime!);
+        print('[DioClient] Grace period check: timeSinceSave=${timeSinceSave.inMilliseconds}ms, gracePeriod=${_tokenSaveGracePeriod.inMilliseconds}ms');
         if (timeSinceSave < _tokenSaveGracePeriod) {
           // Within grace period - retry the request instead of invalidating
           // This handles the race condition where API calls happen before
           // the token write is fully propagated on web platform
           try {
             final token = await _secureStorage.read(key: accessTokenKey);
+            print('[DioClient] Retry read token: ${token != null ? 'present' : 'NULL'}');
             if (token != null) {
               // Mark as retried to prevent infinite loop
               _retriedRequests.add(requestKey);
               // Token exists, retry the request
+              print('[DioClient] Retrying $requestKey with token');
               final retryResponse = await _retry(error.requestOptions);
               _retriedRequests.remove(requestKey);
               return handler.resolve(retryResponse);
             }
           } catch (e) {
             // Retry failed, clean up and continue with normal 401 handling
+            print('[DioClient] Retry failed for $requestKey: $e');
             _retriedRequests.remove(requestKey);
           }
         }
@@ -183,6 +190,15 @@ class DioClient {
     await _secureStorage.write(key: accessTokenKey, value: accessToken);
     if (refreshToken != null) {
       await _secureStorage.write(key: refreshTokenKey, value: refreshToken);
+    }
+    // On web platform, secure storage writes may need a brief moment to propagate.
+    // Verify the write was successful by reading back.
+    final verifyToken = await _secureStorage.read(key: accessTokenKey);
+    print('[DioClient] saveTokens: wrote token, verify=${verifyToken != null ? 'present (${verifyToken.length} chars)' : 'NULL'}');
+    if (verifyToken != accessToken) {
+      // If verification fails, retry the write
+      print('[DioClient] Token verification mismatch, retrying write');
+      await _secureStorage.write(key: accessTokenKey, value: accessToken);
     }
   }
 

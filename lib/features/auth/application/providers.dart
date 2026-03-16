@@ -817,6 +817,10 @@ class InviteAuthNotifier extends StateNotifier<InviteAuthState> {
           accessToken: response.token,
           refreshToken: null,
         );
+        // Verify token was saved (web platform async storage workaround)
+        // Read back to ensure storage has propagated
+        final savedToken = await _dioClient.getAccessToken();
+        print('[InviteAuth] Token saved and verified: ${savedToken != null ? 'yes (${savedToken.length} chars)' : 'NO - STORAGE ISSUE'}');
       }
 
       state = InviteAuthSuccess(
