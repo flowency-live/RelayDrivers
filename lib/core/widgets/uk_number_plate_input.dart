@@ -26,17 +26,23 @@ class UKNumberPlateInput extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // UK front plates are WHITE with BLACK text
+    // This must be enforced regardless of app theme
+    const plateBackgroundColor = Colors.white;
+    const plateTextColor = Colors.black;
+    const plateBorderColor = Color(0xFF1A365D);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
           decoration: BoxDecoration(
-            color: const Color(0xFFFFD700), // Yellow plate
+            color: plateBackgroundColor,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
               color: errorText != null
                   ? Theme.of(context).colorScheme.error
-                  : const Color(0xFF1A365D),
+                  : plateBorderColor,
               width: 2,
             ),
           ),
@@ -72,43 +78,55 @@ class UKNumberPlateInput extends StatelessWidget {
                   ],
                 ),
               ),
-              // Input field
+              // Input field - Theme override to ensure black text on white plate
               Expanded(
-                child: TextField(
-                  controller: controller,
-                  enabled: enabled && !isLoading,
-                  textAlign: TextAlign.center,
-                  textCapitalization: TextCapitalization.characters,
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 3,
-                    fontFamily: 'Courier',
-                    color: Colors.black,
+                child: Theme(
+                  data: Theme.of(context).copyWith(
+                    textSelectionTheme: const TextSelectionThemeData(
+                      cursorColor: plateTextColor,
+                      selectionColor: Color(0x40000000),
+                      selectionHandleColor: plateTextColor,
+                    ),
                   ),
-                  decoration: InputDecoration(
-                    hintText: hintText ?? 'YOUR REG',
-                    hintStyle: TextStyle(
+                  child: TextField(
+                    controller: controller,
+                    enabled: enabled && !isLoading,
+                    textAlign: TextAlign.center,
+                    textCapitalization: TextCapitalization.characters,
+                    cursorColor: plateTextColor,
+                    style: const TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 3,
                       fontFamily: 'Courier',
-                      color: Colors.black.withAlpha(100),
+                      color: plateTextColor,
                     ),
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 12,
+                    decoration: InputDecoration(
+                      hintText: hintText ?? 'YOUR REG',
+                      hintStyle: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 3,
+                        fontFamily: 'Courier',
+                        color: plateTextColor.withAlpha(100),
+                      ),
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 12,
+                      ),
+                      isDense: true,
+                      filled: true,
+                      fillColor: plateBackgroundColor,
                     ),
-                    isDense: true,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9]')),
+                      LengthLimitingTextInputFormatter(7),
+                      _UpperCaseTextFormatter(),
+                    ],
+                    onChanged: onChanged,
+                    onSubmitted: (_) => onLookup?.call(),
                   ),
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9]')),
-                    LengthLimitingTextInputFormatter(7),
-                    _UpperCaseTextFormatter(),
-                  ],
-                  onChanged: onChanged,
-                  onSubmitted: (_) => onLookup?.call(),
                 ),
               ),
             ],
