@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../application/vehicle_providers.dart';
 import '../../domain/models/vehicle.dart';
 import '../widgets/add_vehicle_sheet.dart';
 import '../widgets/vehicle_card.dart';
+import '../widgets/vehicle_photo_upload.dart';
 
 /// Vehicles page - list and manage driver vehicles
 class VehiclesPage extends ConsumerStatefulWidget {
@@ -204,7 +206,7 @@ class _ErrorView extends StatelessWidget {
   }
 }
 
-class _VehicleList extends StatelessWidget {
+class _VehicleList extends ConsumerWidget {
   final List<Vehicle> vehicles;
   final Function(Vehicle) onDelete;
   final String? isDeleting;
@@ -215,8 +217,30 @@ class _VehicleList extends StatelessWidget {
     this.isDeleting,
   });
 
+  void _showPhotoUploadSheet(BuildContext context, WidgetRef ref, Vehicle vehicle) {
+    VehiclePhotoUploadSheet.show(
+      context,
+      vrn: vehicle.vrn,
+      existingPhotoCount: vehicle.photos.length,
+      onUpload: ({
+        required photoType,
+        required photoBytes,
+        required contentType,
+        onProgress,
+      }) async {
+        return await ref.read(vehicleStateProvider.notifier).uploadVehiclePhoto(
+          vrn: vehicle.vrn,
+          photoType: photoType,
+          photoBytes: photoBytes,
+          contentType: contentType,
+          onProgress: onProgress,
+        );
+      },
+    );
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: vehicles.length,
@@ -226,6 +250,8 @@ class _VehicleList extends StatelessWidget {
           padding: const EdgeInsets.only(bottom: 12),
           child: VehicleCard(
             vehicle: vehicle,
+            onTap: () => context.push('/vehicles/${Uri.encodeComponent(vehicle.vrn)}'),
+            onAddPhoto: () => _showPhotoUploadSheet(context, ref, vehicle),
             onDelete: () => onDelete(vehicle),
             isDeleting: isDeleting == vehicle.vrn,
           ),

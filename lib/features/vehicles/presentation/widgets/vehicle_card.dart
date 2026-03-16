@@ -7,12 +7,16 @@ import '../../domain/models/vehicle.dart';
 class VehicleCard extends StatelessWidget {
   final Vehicle vehicle;
   final VoidCallback onDelete;
+  final VoidCallback? onTap;
+  final VoidCallback? onAddPhoto;
   final bool isDeleting;
 
   const VehicleCard({
     super.key,
     required this.vehicle,
     required this.onDelete,
+    this.onTap,
+    this.onAddPhoto,
     this.isDeleting = false,
   });
 
@@ -48,17 +52,22 @@ class VehicleCard extends StatelessWidget {
     final (complianceColor, complianceBg) = _getComplianceColors();
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? RelayColors.darkSurface1 : RelayColors.lightSurface,
-        borderRadius: BorderRadius.circular(AppTheme.borderRadius),
-        border: Border.all(
-          color: isDark ? RelayColors.darkBorderSubtle : RelayColors.lightBorderSubtle,
-          width: 1,
-        ),
-      ),
+    return Material(
+      color: isDark ? RelayColors.darkSurface1 : RelayColors.lightSurface,
+      borderRadius: BorderRadius.circular(AppTheme.borderRadius),
       clipBehavior: Clip.antiAlias,
-      child: Column(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppTheme.borderRadius),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppTheme.borderRadius),
+            border: Border.all(
+              color: isDark ? RelayColors.darkBorderSubtle : RelayColors.lightBorderSubtle,
+              width: 1,
+            ),
+          ),
+          child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header with VRN and compliance indicator
@@ -269,8 +278,47 @@ class VehicleCard extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
               children: [
+                // Photo count indicator
+                if (vehicle.photos.isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: RelayColors.primary.withAlpha(25),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.photo_library_outlined,
+                          size: 14,
+                          color: RelayColors.primary,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${vehicle.photos.length}',
+                          style: TextStyle(
+                            color: RelayColors.primary,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                const Spacer(),
+                // Add Photo button
+                if (onAddPhoto != null)
+                  TextButton.icon(
+                    onPressed: onAddPhoto,
+                    icon: Icon(Icons.add_a_photo, size: 18, color: RelayColors.primary),
+                    label: Text(
+                      'Add Photos',
+                      style: TextStyle(color: RelayColors.primary),
+                    ),
+                  ),
+                // Delete button
                 TextButton.icon(
                   onPressed: isDeleting ? null : onDelete,
                   icon: isDeleting
@@ -292,6 +340,8 @@ class VehicleCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+        ),
       ),
     );
   }
