@@ -1,9 +1,12 @@
 /// Document types supported by the system
+/// 3 required documents for drivers:
+/// 1. PHV Driver Licence - driver specific, issued by local council
+/// 2. PHV Vehicle Licence - per vehicle, issued by local council
+/// 3. Hire & Reward Insurance - may cover multiple vehicles in one policy
 enum DocumentType {
-  phvDriverLicense('phv_driver_license', 'PHV Driver License', 'driver'),
-  driverInsurance('driver_insurance', 'Driver Insurance', 'driver'),
-  phvVehicleLicense('phv_vehicle_license', 'PHV Vehicle License', 'vehicle'),
-  vehicleInsurance('vehicle_insurance', 'Vehicle Insurance', 'vehicle');
+  phvDriverLicence('phv_driver_licence', 'PHV Driver Licence', 'driver'),
+  phvVehicleLicence('phv_vehicle_licence', 'PHV Vehicle Licence', 'vehicle'),
+  hireRewardInsurance('hire_reward_insurance', 'Hire & Reward Insurance', 'vehicle');
 
   final String apiValue;
   final String displayName;
@@ -13,10 +16,38 @@ enum DocumentType {
 
   bool get isVehicleDocument => belongsTo == 'vehicle';
 
+  /// Short description for each document type
+  String get description {
+    return switch (this) {
+      DocumentType.phvDriverLicence =>
+        'Your private hire driver licence issued by the local council',
+      DocumentType.phvVehicleLicence =>
+        'The vehicle licence plate/badge for this specific vehicle',
+      DocumentType.hireRewardInsurance =>
+        'Hire & Reward insurance covering your private hire work',
+    };
+  }
+
+  /// Icon for each document type
+  String get iconName {
+    return switch (this) {
+      DocumentType.phvDriverLicence => 'badge',
+      DocumentType.phvVehicleLicence => 'directions_car',
+      DocumentType.hireRewardInsurance => 'security',
+    };
+  }
+
   static DocumentType fromApiValue(String value) {
+    // Handle both old and new API values for backwards compatibility
+    final normalized = value.toLowerCase().replaceAll('-', '_');
     return DocumentType.values.firstWhere(
-      (e) => e.apiValue == value,
-      orElse: () => DocumentType.phvDriverLicense,
+      (e) => e.apiValue == normalized ||
+             // Legacy mappings
+             (normalized == 'phv_driver_license' && e == DocumentType.phvDriverLicence) ||
+             (normalized == 'driver_insurance' && e == DocumentType.hireRewardInsurance) ||
+             (normalized == 'phv_vehicle_license' && e == DocumentType.phvVehicleLicence) ||
+             (normalized == 'vehicle_insurance' && e == DocumentType.hireRewardInsurance),
+      orElse: () => DocumentType.phvDriverLicence,
     );
   }
 }
