@@ -25,6 +25,8 @@ class ApiConfig {
 
   // Driver Profile endpoints
   static const String profile = '/driver/profile';
+  static const String profilePhotoUploadUrl = '/driver/profile/photo/upload-url';
+  static const String profilePhoto = '/driver/profile/photo';
 
   // Driver Vehicles endpoints
   static const String vehicles = '/driver/vehicles';

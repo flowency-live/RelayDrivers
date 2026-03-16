@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -808,37 +809,204 @@ class _DvlaCheckCodeFieldState extends State<_DvlaCheckCodeField> {
   }
 }
 
-class _ProfileHeader extends StatelessWidget {
+class _ProfileHeader extends ConsumerStatefulWidget {
   final DriverProfile profile;
 
   const _ProfileHeader({required this.profile});
 
   @override
+  ConsumerState<_ProfileHeader> createState() => _ProfileHeaderState();
+}
+
+class _ProfileHeaderState extends ConsumerState<_ProfileHeader> {
+  final _imagePicker = ImagePicker();
+  bool _isUploading = false;
+  double _uploadProgress = 0;
+
+  Future<void> _pickAndUploadPhoto() async {
+    final source = await _showImageSourceDialog();
+    if (source == null) return;
+
+    final pickedFile = await _imagePicker.pickImage(
+      source: source,
+      maxWidth: 512,
+      maxHeight: 512,
+      imageQuality: 85,
+    );
+
+    if (pickedFile == null) return;
+
+    setState(() {
+      _isUploading = true;
+      _uploadProgress = 0;
+    });
+
+    try {
+      final bytes = await pickedFile.readAsBytes();
+      final contentType = _getContentType(pickedFile.path);
+
+      final photoUrl = await ref.read(profileStateProvider.notifier).uploadProfilePhoto(
+        photoBytes: bytes,
+        contentType: contentType,
+        onProgress: (progress) {
+          setState(() {
+            _uploadProgress = progress;
+          });
+        },
+      );
+
+      if (mounted) {
+        if (photoUrl != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Profile photo updated'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to upload photo'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUploading = false;
+        });
+      }
+    }
+  }
+
+  Future<ImageSource?> _showImageSourceDialog() async {
+    return showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Take Photo'),
+              onTap: () => Navigator.pop(context, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Choose from Gallery'),
+              onTap: () => Navigator.pop(context, ImageSource.gallery),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _getContentType(String path) {
+    final ext = path.split('.').last.toLowerCase();
+    switch (ext) {
+      case 'png':
+        return 'image/png';
+      case 'webp':
+        return 'image/webp';
+      case 'jpg':
+      case 'jpeg':
+      default:
+        return 'image/jpeg';
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final profile = widget.profile;
 
     return Center(
       child: Column(
         children: [
-          Container(
-            width: 96,
-            height: 96,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: RelayColors.primary.withAlpha(isDark ? 40 : 25),
-              border: Border.all(
-                color: RelayColors.primary.withAlpha(isDark ? 80 : 50),
-                width: 2,
-              ),
-            ),
-            child: Center(
-              child: Text(
-                '${profile.firstName.isNotEmpty ? profile.firstName[0] : '?'}${profile.lastName.isNotEmpty ? profile.lastName[0] : '?'}',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      color: RelayColors.primary,
-                      fontWeight: FontWeight.w600,
+          // Profile photo with edit overlay
+          GestureDetector(
+            onTap: _isUploading ? null : _pickAndUploadPhoto,
+            child: Stack(
+              children: [
+                // Photo or initials
+                Container(
+                  width: 96,
+                  height: 96,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: RelayColors.primary.withAlpha(isDark ? 40 : 25),
+                    border: Border.all(
+                      color: RelayColors.primary.withAlpha(isDark ? 80 : 50),
+                      width: 2,
                     ),
-              ),
+                  ),
+                  child: ClipOval(
+                    child: profile.profilePhotoUrl != null
+                        ? Image.network(
+                            profile.profilePhotoUrl!,
+                            width: 96,
+                            height: 96,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) =>
+                                _buildInitials(context, profile),
+                          )
+                        : _buildInitials(context, profile),
+                  ),
+                ),
+                // Upload progress overlay
+                if (_isUploading)
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.black.withAlpha(128),
+                      ),
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          value: _uploadProgress > 0 ? _uploadProgress : null,
+                          color: Colors.white,
+                          strokeWidth: 3,
+                        ),
+                      ),
+                    ),
+                  ),
+                // Edit button
+                if (!_isUploading)
+                  Positioned(
+                    right: 0,
+                    bottom: 0,
+                    child: Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: RelayColors.primary,
+                        border: Border.all(
+                          color: isDark ? RelayColors.darkSurface : Colors.white,
+                          width: 2,
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons.camera_alt,
+                        size: 16,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
           const SizedBox(height: 16),
@@ -849,6 +1017,18 @@ class _ProfileHeader extends StatelessWidget {
           const SizedBox(height: 8),
           _StatusBadge(status: profile.status),
         ],
+      ),
+    );
+  }
+
+  Widget _buildInitials(BuildContext context, DriverProfile profile) {
+    return Center(
+      child: Text(
+        '${profile.firstName.isNotEmpty ? profile.firstName[0] : '?'}${profile.lastName.isNotEmpty ? profile.lastName[0] : '?'}',
+        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+              color: RelayColors.primary,
+              fontWeight: FontWeight.w600,
+            ),
       ),
     );
   }

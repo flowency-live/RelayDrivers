@@ -35,6 +35,9 @@ class DriverProfile {
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
+  // Profile photo URL (S3 presigned URL or CloudFront URL)
+  final String? profilePhotoUrl;
+
   // DVLA Licence details (Phase 1 onboarding)
   final String? dvlaLicenceNumber;
   final String? dvlaCheckCode;
@@ -57,6 +60,7 @@ class DriverProfile {
     required this.status,
     this.createdAt,
     this.updatedAt,
+    this.profilePhotoUrl,
     this.dvlaLicenceNumber,
     this.dvlaCheckCode,
     this.dvlaLicenceExpiry,
@@ -84,6 +88,7 @@ class DriverProfile {
       updatedAt: json['updatedAt'] != null
           ? DateTime.tryParse(json['updatedAt'] as String)
           : null,
+      profilePhotoUrl: json['profilePhotoUrl'] as String?,
       dvlaLicenceNumber: json['dvlaLicenceNumber'] as String?,
       dvlaCheckCode: json['dvlaCheckCode'] as String?,
       dvlaLicenceExpiry: json['dvlaLicenceExpiry'] as String?,
@@ -126,6 +131,7 @@ class DriverProfile {
     String? status,
     DateTime? createdAt,
     DateTime? updatedAt,
+    String? profilePhotoUrl,
     String? dvlaLicenceNumber,
     String? dvlaCheckCode,
     String? dvlaLicenceExpiry,
@@ -145,6 +151,7 @@ class DriverProfile {
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      profilePhotoUrl: profilePhotoUrl ?? this.profilePhotoUrl,
       dvlaLicenceNumber: dvlaLicenceNumber ?? this.dvlaLicenceNumber,
       dvlaCheckCode: dvlaCheckCode ?? this.dvlaCheckCode,
       dvlaLicenceExpiry: dvlaLicenceExpiry ?? this.dvlaLicenceExpiry,

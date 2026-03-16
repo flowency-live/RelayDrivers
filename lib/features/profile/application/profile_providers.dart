@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../auth/application/providers.dart';
 import '../domain/models/driver_profile.dart';
@@ -71,6 +72,37 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
     } catch (e) {
       state = ProfileError(_parseError(e));
       return false;
+    }
+  }
+
+  /// Upload profile photo
+  Future<String?> uploadProfilePhoto({
+    required Uint8List photoBytes,
+    required String contentType,
+    void Function(double)? onProgress,
+  }) async {
+    final currentState = state;
+    if (currentState is! ProfileLoaded) return null;
+
+    try {
+      final photoUrl = await _repository.uploadProfilePhoto(
+        photoBytes: photoBytes,
+        contentType: contentType,
+        onProgress: onProgress,
+      );
+
+      // Update local state with new photo URL
+      if (photoUrl != null) {
+        final updatedProfile = currentState.profile.copyWith(
+          profilePhotoUrl: photoUrl,
+        );
+        state = ProfileLoaded(updatedProfile);
+      }
+
+      return photoUrl;
+    } catch (e) {
+      // Don't change state to error, just return null
+      return null;
     }
   }
 
