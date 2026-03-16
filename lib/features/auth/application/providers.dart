@@ -66,11 +66,26 @@ class AuthNotifier extends StateNotifier<AuthState> {
       }
     } on DioException catch (e) {
       print('[AuthNotifier] checkSession: DioException ${e.response?.statusCode} - ${e.message}');
-      // Only treat 401 as definitely unauthenticated
+      // Handle 401 Unauthorized
       if (e.response?.statusCode == 401) {
         print('[AuthNotifier] checkSession: 401 - clearing tokens');
         await _repository.clearTokens();
         state = const AuthUnauthenticated();
+      }
+      // Handle 403 NO_OPERATOR_ACCESS - driver's relationships were deleted
+      else if (e.response?.statusCode == 403) {
+        final data = e.response?.data;
+        if (data is Map && data['code'] == 'NO_OPERATOR_ACCESS') {
+          print('[AuthNotifier] checkSession: NO_OPERATOR_ACCESS - clearing tokens');
+          await _repository.clearTokens();
+          state = AuthError(
+            message: data['message'] as String? ??
+                'Your access has been removed. Please contact an operator.',
+          );
+        } else {
+          print('[AuthNotifier] checkSession: 403 - setting unauthenticated');
+          state = const AuthUnauthenticated();
+        }
       } else {
         // Network errors - can't verify session
         // Force login for safety (can't access app without network anyway)
@@ -391,8 +406,20 @@ class PhoneAuthNotifier extends StateNotifier<PhoneAuthState> {
     // Try to extract error message from DioException response
     if (error is DioException && error.response?.data != null) {
       final data = error.response!.data;
-      if (data is Map && data['error'] != null) {
-        return data['error'].toString();
+      if (data is Map) {
+        // Handle NO_OPERATOR_ACCESS - driver's access was revoked/deleted
+        final code = data['code'] as String?;
+        if (code == 'NO_OPERATOR_ACCESS') {
+          return data['message'] as String? ??
+              'Your access has been removed. Please contact an operator to receive a new invite.';
+        }
+        // Return the message if available, otherwise the error
+        if (data['message'] != null) {
+          return data['message'].toString();
+        }
+        if (data['error'] != null) {
+          return data['error'].toString();
+        }
       }
     }
 
@@ -539,11 +566,19 @@ class BiometricAuthNotifier extends StateNotifier<BiometricAuthState> {
       await _repository.getSession();
       return true;
     } on DioException catch (e) {
-      // Only treat 401 Unauthorized as invalid session
-      // Network errors, timeouts, etc. should NOT log the user out
+      // Treat 401 Unauthorized as invalid session
       if (e.response?.statusCode == 401) {
         await _dioClient.clearTokens();
         return false;
+      }
+      // Treat 403 NO_OPERATOR_ACCESS as invalid session
+      // This happens when admin deleted the driver's relationship
+      if (e.response?.statusCode == 403) {
+        final data = e.response?.data;
+        if (data is Map && data['code'] == 'NO_OPERATOR_ACCESS') {
+          await _dioClient.clearTokens();
+          return false;
+        }
       }
       // For other errors (network, timeout), assume session is valid
       // User will see error on next API call and handle appropriately
