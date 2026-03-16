@@ -381,16 +381,13 @@ class _ProfileContentState extends ConsumerState<_ProfileContent> {
             },
           ),
           const SizedBox(height: 8),
-          EditableProfileField(
-            icon: Icons.pin_outlined,
-            label: 'Check Code',
+          _DvlaCheckCodeField(
             value: profile.dvlaCheckCode,
-            textCapitalization: TextCapitalization.characters,
             onSave: (value) async {
               final request = ProfileUpdateRequest(
                 firstName: profile.firstName,
                 lastName: profile.lastName,
-                dvlaCheckCode: value?.toUpperCase(),
+                dvlaCheckCode: value,
               );
               return await ref.read(profileStateProvider.notifier).updateProfile(request);
             },
@@ -535,6 +532,275 @@ class _DateOfBirthFieldState extends State<_DateOfBirthField> {
                 size: 16,
                 color: theme.colorScheme.outline,
               ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// DVLA Check Code field with input mask (XX XX XX XX format)
+class _DvlaCheckCodeField extends StatefulWidget {
+  final String? value;
+  final Future<bool> Function(String?) onSave;
+
+  const _DvlaCheckCodeField({
+    required this.value,
+    required this.onSave,
+  });
+
+  @override
+  State<_DvlaCheckCodeField> createState() => _DvlaCheckCodeFieldState();
+}
+
+class _DvlaCheckCodeFieldState extends State<_DvlaCheckCodeField> {
+  bool _isEditing = false;
+  bool _isSaving = false;
+  late TextEditingController _controller;
+  String? _errorText;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: _formatForDisplay(widget.value));
+  }
+
+  @override
+  void didUpdateWidget(_DvlaCheckCodeField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.value != widget.value && !_isEditing) {
+      _controller.text = _formatForDisplay(widget.value);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  /// Format stored value (no spaces) for display (with spaces)
+  String _formatForDisplay(String? value) {
+    if (value == null || value.isEmpty) return '';
+    // Remove any existing spaces and format as XX XX XX XX
+    final cleaned = value.replaceAll(' ', '').toUpperCase();
+    final buffer = StringBuffer();
+    for (int i = 0; i < cleaned.length && i < 8; i++) {
+      if (i > 0 && i % 2 == 0) buffer.write(' ');
+      buffer.write(cleaned[i]);
+    }
+    return buffer.toString();
+  }
+
+  /// Remove spaces for storage
+  String _formatForStorage(String value) {
+    return value.replaceAll(' ', '').toUpperCase();
+  }
+
+  /// Apply input mask as user types
+  void _onChanged(String value) {
+    // Remove all spaces and non-alphanumeric chars
+    final cleaned = value.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '').toUpperCase();
+
+    // Limit to 8 characters
+    final limited = cleaned.length > 8 ? cleaned.substring(0, 8) : cleaned;
+
+    // Format with spaces
+    final buffer = StringBuffer();
+    for (int i = 0; i < limited.length; i++) {
+      if (i > 0 && i % 2 == 0) buffer.write(' ');
+      buffer.write(limited[i]);
+    }
+
+    final formatted = buffer.toString();
+    if (formatted != _controller.text) {
+      _controller.value = TextEditingValue(
+        text: formatted,
+        selection: TextSelection.collapsed(offset: formatted.length),
+      );
+    }
+  }
+
+  void _startEditing() {
+    setState(() {
+      _isEditing = true;
+      _controller.text = _formatForDisplay(widget.value);
+      _errorText = null;
+    });
+  }
+
+  void _cancelEditing() {
+    setState(() {
+      _isEditing = false;
+      _controller.text = _formatForDisplay(widget.value);
+      _errorText = null;
+    });
+  }
+
+  Future<void> _save() async {
+    final cleaned = _formatForStorage(_controller.text);
+
+    // Validate: must be exactly 8 alphanumeric characters
+    if (cleaned.isNotEmpty && cleaned.length != 8) {
+      setState(() {
+        _errorText = 'Must be 8 characters (e.g., HV CY J9 TC)';
+      });
+      return;
+    }
+
+    setState(() {
+      _isSaving = true;
+      _errorText = null;
+    });
+
+    try {
+      final success = await widget.onSave(cleaned.isEmpty ? null : cleaned);
+      if (mounted) {
+        if (success) {
+          setState(() {
+            _isEditing = false;
+            _isSaving = false;
+          });
+        } else {
+          setState(() {
+            _isSaving = false;
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+          _errorText = 'Failed to save';
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    if (_isEditing) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(
+              Icons.pin_outlined,
+              size: 20,
+              color: theme.colorScheme.primary,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Check Code',
+                    style: theme.textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 4),
+                  TextField(
+                    controller: _controller,
+                    textCapitalization: TextCapitalization.characters,
+                    autofocus: true,
+                    enabled: !_isSaving,
+                    onChanged: _onChanged,
+                    decoration: InputDecoration(
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      border: const OutlineInputBorder(),
+                      hintText: 'XX XX XX XX',
+                      errorText: _errorText,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            if (_isSaving)
+              const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            else ...[
+              IconButton(
+                icon: Icon(
+                  Icons.check,
+                  color: theme.colorScheme.primary,
+                ),
+                onPressed: _save,
+                constraints: const BoxConstraints(
+                  minWidth: 36,
+                  minHeight: 36,
+                ),
+                padding: EdgeInsets.zero,
+                visualDensity: VisualDensity.compact,
+              ),
+              IconButton(
+                icon: Icon(
+                  Icons.close,
+                  color: theme.colorScheme.error,
+                ),
+                onPressed: _cancelEditing,
+                constraints: const BoxConstraints(
+                  minWidth: 36,
+                  minHeight: 36,
+                ),
+                padding: EdgeInsets.zero,
+                visualDensity: VisualDensity.compact,
+              ),
+            ],
+          ],
+        ),
+      );
+    }
+
+    return GestureDetector(
+      onTap: _startEditing,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Row(
+          children: [
+            Icon(
+              Icons.pin_outlined,
+              size: 20,
+              color: theme.colorScheme.primary,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Check Code',
+                    style: theme.textTheme.bodySmall,
+                  ),
+                  Text(
+                    widget.value != null && widget.value!.isNotEmpty
+                        ? _formatForDisplay(widget.value)
+                        : 'Not set',
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: widget.value == null || widget.value!.isEmpty
+                          ? theme.textTheme.bodySmall?.color
+                          : null,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.edit,
+              size: 16,
+              color: theme.colorScheme.outline,
+            ),
           ],
         ),
       ),
