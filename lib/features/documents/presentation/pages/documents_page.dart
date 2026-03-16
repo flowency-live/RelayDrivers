@@ -70,7 +70,7 @@ class _DocumentsPageState extends ConsumerState<DocumentsPage> {
               children: [
                 // Progress summary
                 _DocumentProgressCard(documents: documents),
-                const SizedBox(height: 24),
+                const SizedBox(height: 28),
 
                 // 1. Driver Licence section
                 _DocumentSection(
@@ -84,7 +84,7 @@ class _DocumentsPageState extends ConsumerState<DocumentsPage> {
                   onAdd: () => _showUploadSheet(DocumentType.phvDriverLicence),
                   maxDocuments: 1,
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
 
                 // 2. Vehicle Licences section (per vehicle)
                 _VehicleLicenceSection(
@@ -97,7 +97,7 @@ class _DocumentsPageState extends ConsumerState<DocumentsPage> {
                     vehicleVrn: vrn,
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
 
                 // 3. Insurance section
                 _DocumentSection(
@@ -109,7 +109,6 @@ class _DocumentsPageState extends ConsumerState<DocumentsPage> {
                       .where((d) => d.documentType == DocumentType.hireRewardInsurance)
                       .toList(),
                   onAdd: () => _showUploadSheet(DocumentType.hireRewardInsurance),
-                  // Insurance can have multiple (renewals, different policies)
                   maxDocuments: null,
                 ),
 
@@ -123,13 +122,15 @@ class _DocumentsPageState extends ConsumerState<DocumentsPage> {
 }
 
 /// Progress summary card showing overall document status
-class _DocumentProgressCard extends StatelessWidget {
+class _DocumentProgressCard extends ConsumerWidget {
   final List<DriverDocument> documents;
 
   const _DocumentProgressCard({required this.documents});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final vehicles = ref.watch(vehicleListProvider);
+
     // Count completed documents
     final hasDriverLicence = documents.any(
       (d) => d.documentType == DocumentType.phvDriverLicence,
@@ -138,25 +139,34 @@ class _DocumentProgressCard extends StatelessWidget {
       (d) => d.documentType == DocumentType.hireRewardInsurance,
     );
 
-    // Count issues
+    // Count vehicle licences
+    final vehicleLicences = documents
+        .where((d) => d.documentType == DocumentType.phvVehicleLicence)
+        .toList();
+    final vehiclesWithLicence = vehicles.where((v) =>
+        vehicleLicences.any((d) => d.vehicleVrn == v.vrn)).length;
+
     final expiringSoon = documents.where((d) => d.isExpiringSoon).length;
     final expired = documents.where((d) => d.isExpired).length;
     final rejected = documents.where((d) => d.status == DocumentStatus.rejected).length;
     final issues = expiringSoon + expired + rejected;
 
-    final completedCount = (hasDriverLicence ? 1 : 0) + (hasInsurance ? 1 : 0);
-    final requiredCount = 2; // Driver licence + insurance (vehicle licences are per-vehicle)
+    // Required: Driver licence + Insurance + one licence per vehicle
+    final completedCount = (hasDriverLicence ? 1 : 0) +
+                           (hasInsurance ? 1 : 0) +
+                           vehiclesWithLicence;
+    final requiredCount = 2 + vehicles.length; // 2 base + vehicle count
 
-    final allComplete = completedCount == requiredCount && issues == 0;
+    final allComplete = completedCount == requiredCount && issues == 0 && requiredCount > 0;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: allComplete
-              ? [RelayColors.success, RelayColors.success.withAlpha(200)]
+              ? [RelayColors.success, RelayColors.successLight]
               : issues > 0
-                  ? [RelayColors.warning, RelayColors.warning.withAlpha(200)]
+                  ? [RelayColors.warning, RelayColors.warningLight]
                   : [RelayColors.primary, RelayColors.primaryLight],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -168,7 +178,7 @@ class _DocumentProgressCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.white.withAlpha(50),
+              color: Colors.white.withAlpha(40),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
@@ -178,7 +188,7 @@ class _DocumentProgressCard extends StatelessWidget {
                       ? Icons.warning_rounded
                       : Icons.description_outlined,
               color: Colors.white,
-              size: 32,
+              size: 28,
             ),
           ),
           const SizedBox(width: 16),
@@ -195,10 +205,10 @@ class _DocumentProgressCard extends StatelessWidget {
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
-                    fontSize: 16,
+                    fontSize: 15,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Text(
                   allComplete
                       ? 'Your documents are up to date'
@@ -206,7 +216,7 @@ class _DocumentProgressCard extends StatelessWidget {
                           ? _getIssuesSummary(expiringSoon, expired, rejected)
                           : 'Upload your documents to get started',
                   style: TextStyle(
-                    color: Colors.white.withAlpha(220),
+                    color: Colors.white.withAlpha(230),
                     fontSize: 13,
                   ),
                 ),
@@ -259,12 +269,12 @@ class _DocumentSection extends StatelessWidget {
         Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: accentColor.withAlpha(25),
-                borderRadius: BorderRadius.circular(8),
+                color: accentColor.withAlpha(20),
+                borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(icon, color: accentColor, size: 20),
+              child: Icon(icon, color: accentColor, size: 22),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -277,10 +287,11 @@ class _DocumentSection extends StatelessWidget {
                           fontWeight: FontWeight.bold,
                         ),
                   ),
+                  const SizedBox(height: 2),
                   Text(
                     description,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).textTheme.bodySmall?.color?.withAlpha(179),
+                          color: Theme.of(context).textTheme.bodySmall?.color?.withAlpha(160),
                         ),
                   ),
                 ],
@@ -299,10 +310,9 @@ class _DocumentSection extends StatelessWidget {
 
         // Document list or empty state
         if (isEmpty)
-          _EmptyDocumentCard(
-            title: title,
-            onAdd: onAdd,
-            accentColor: accentColor,
+          _MissingDocumentCard(
+            documentName: title,
+            onUpload: onAdd,
           )
         else
           ...documents.map(
@@ -337,12 +347,12 @@ class _VehicleLicenceSection extends StatelessWidget {
         Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: RelayColors.info.withAlpha(25),
-                borderRadius: BorderRadius.circular(8),
+                color: RelayColors.info.withAlpha(20),
+                borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(Icons.directions_car, color: RelayColors.info, size: 20),
+              child: const Icon(Icons.directions_car, color: RelayColors.info, size: 22),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -355,10 +365,11 @@ class _VehicleLicenceSection extends StatelessWidget {
                           fontWeight: FontWeight.bold,
                         ),
                   ),
+                  const SizedBox(height: 2),
                   Text(
                     'One licence required per vehicle',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).textTheme.bodySmall?.color?.withAlpha(179),
+                          color: Theme.of(context).textTheme.bodySmall?.color?.withAlpha(160),
                         ),
                   ),
                 ],
@@ -373,24 +384,25 @@ class _VehicleLicenceSection extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
+              color: Theme.of(context).colorScheme.surfaceContainerHighest.withAlpha(128),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: Theme.of(context).colorScheme.outline.withAlpha(50),
+                color: Theme.of(context).colorScheme.outline.withAlpha(40),
               ),
             ),
             child: Row(
               children: [
                 Icon(
                   Icons.info_outline,
-                  color: Theme.of(context).colorScheme.onSurface.withAlpha(128),
+                  color: Theme.of(context).colorScheme.onSurface.withAlpha(140),
+                  size: 20,
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     'Add a vehicle first to upload its licence',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurface.withAlpha(179),
+                          color: Theme.of(context).colorScheme.onSurface.withAlpha(180),
                         ),
                   ),
                 ),
@@ -398,12 +410,10 @@ class _VehicleLicenceSection extends StatelessWidget {
             ),
           )
         else
-          // List vehicles with their licence status
           ...vehicles.map((vehicle) {
             final vehicleDocs = documents
                 .where((d) => d.vehicleVrn == vehicle.vrn)
                 .toList();
-            final hasLicence = vehicleDocs.isNotEmpty;
 
             return Padding(
               padding: const EdgeInsets.only(bottom: 8),
@@ -434,62 +444,87 @@ class _VehicleLicenceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hasLicence = documents.isNotEmpty;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     if (!hasLicence) {
-      // Show add licence prompt for this vehicle
-      return InkWell(
-        onTap: onAdd,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: RelayColors.dangerBackground,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: RelayColors.danger.withAlpha(50)),
+      // Missing licence card with left accent bar
+      return Container(
+        decoration: BoxDecoration(
+          color: isDark
+              ? RelayColors.darkSurface2
+              : Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isDark
+                ? RelayColors.darkBorderDefault
+                : Theme.of(context).colorScheme.outline.withAlpha(60),
           ),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: IntrinsicHeight(
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // Left accent bar (warning color)
               Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: RelayColors.danger.withAlpha(25),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(
-                  Icons.warning_amber,
-                  color: RelayColors.danger,
-                  size: 20,
-                ),
+                width: 4,
+                color: RelayColors.warning,
               ),
-              const SizedBox(width: 12),
+              // Content
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${vehicle.vrn} - ${vehicle.displayName}',
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                    ),
-                    const SizedBox(height: 2),
-                    const Text(
-                      'Missing vehicle licence',
-                      style: TextStyle(
-                        color: RelayColors.danger,
-                        fontSize: 13,
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Row(
+                    children: [
+                      // Warning icon
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: RelayColors.warning.withAlpha(20),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.warning_amber_rounded,
+                          color: RelayColors.warning,
+                          size: 18,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-              FilledButton.icon(
-                onPressed: onAdd,
-                icon: const Icon(Icons.upload_file, size: 18),
-                label: const Text('Upload'),
-                style: FilledButton.styleFrom(
-                  backgroundColor: RelayColors.danger,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      const SizedBox(width: 12),
+                      // Vehicle info
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              '${vehicle.vrn} - ${vehicle.displayName}',
+                              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Missing vehicle licence',
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: RelayColors.warning,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // Upload button
+                      FilledButton(
+                        onPressed: onAdd,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: RelayColors.primary,
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        ),
+                        child: const Text('Upload'),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -510,14 +545,14 @@ class _VehicleLicenceCard extends StatelessWidget {
               Icon(
                 Icons.directions_car,
                 size: 16,
-                color: Theme.of(context).colorScheme.onSurface.withAlpha(128),
+                color: Theme.of(context).colorScheme.onSurface.withAlpha(140),
               ),
               const SizedBox(width: 8),
               Text(
                 '${vehicle.vrn} - ${vehicle.displayName}',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       fontWeight: FontWeight.w600,
-                      color: Theme.of(context).colorScheme.onSurface.withAlpha(179),
+                      color: Theme.of(context).colorScheme.onSurface.withAlpha(180),
                     ),
               ),
             ],
@@ -534,71 +569,97 @@ class _VehicleLicenceCard extends StatelessWidget {
   }
 }
 
-/// Empty state card prompting document upload
-class _EmptyDocumentCard extends StatelessWidget {
-  final String title;
-  final VoidCallback onAdd;
-  final Color accentColor;
+/// Card showing a missing required document with left accent bar
+class _MissingDocumentCard extends StatelessWidget {
+  final String documentName;
+  final VoidCallback onUpload;
 
-  const _EmptyDocumentCard({
-    required this.title,
-    required this.onAdd,
-    required this.accentColor,
+  const _MissingDocumentCard({
+    required this.documentName,
+    required this.onUpload,
   });
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onAdd,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: RelayColors.dangerBackground,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: RelayColors.danger.withAlpha(50)),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark
+            ? RelayColors.darkSurface2
+            : Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark
+              ? RelayColors.darkBorderDefault
+              : Theme.of(context).colorScheme.outline.withAlpha(60),
         ),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: IntrinsicHeight(
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // Left accent bar (warning/required color)
             Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: RelayColors.danger.withAlpha(25),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(
-                Icons.warning_amber,
-                color: RelayColors.danger,
-                size: 20,
-              ),
+              width: 4,
+              color: RelayColors.warning,
             ),
-            const SizedBox(width: 12),
+            // Content
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Required',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: RelayColors.danger,
-                        ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Please upload your $title',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
-              ),
-            ),
-            FilledButton.icon(
-              onPressed: onAdd,
-              icon: const Icon(Icons.upload_file, size: 18),
-              label: const Text('Upload'),
-              style: FilledButton.styleFrom(
-                backgroundColor: accentColor,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Row(
+                  children: [
+                    // Warning icon
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: RelayColors.warning.withAlpha(20),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.warning_amber_rounded,
+                        color: RelayColors.warning,
+                        size: 18,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    // Text
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Required',
+                            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: RelayColors.warning,
+                                ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Please upload your $documentName',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: Theme.of(context).colorScheme.onSurface.withAlpha(180),
+                                ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // Upload button
+                    FilledButton(
+                      onPressed: onUpload,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: RelayColors.primary,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      ),
+                      child: const Text('Upload'),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
