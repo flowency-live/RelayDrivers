@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/relay_colors.dart';
 import '../../domain/models/vehicle.dart';
 
 /// Card widget displaying vehicle information with compliance status
@@ -14,53 +16,47 @@ class VehicleCard extends StatelessWidget {
     this.isDeleting = false,
   });
 
-  Color _getComplianceColor(BuildContext context) {
-    switch (vehicle.complianceStatus.toLowerCase()) {
-      case 'compliant':
-        return const Color(0xFF2ECC71);
-      case 'expiring':
-        return const Color(0xFFF39C12);
-      case 'non_compliant':
-      case 'expired':
-        return const Color(0xFFE63946);
-      default:
-        return const Color(0xFFB0B0B0);
-    }
+  (Color, Color) _getComplianceColors() {
+    return switch (vehicle.complianceStatus.toLowerCase()) {
+      'compliant' => (RelayColors.success, RelayColors.successBackground),
+      'expiring' => (RelayColors.warning, RelayColors.warningBackground),
+      'non_compliant' || 'expired' => (RelayColors.danger, RelayColors.dangerBackground),
+      _ => (RelayColors.darkTextMuted, RelayColors.darkBorderSubtle),
+    };
   }
 
   IconData _getComplianceIcon() {
-    switch (vehicle.complianceStatus.toLowerCase()) {
-      case 'compliant':
-        return Icons.check_circle;
-      case 'expiring':
-        return Icons.warning;
-      case 'non_compliant':
-      case 'expired':
-        return Icons.error;
-      default:
-        return Icons.help_outline;
-    }
+    return switch (vehicle.complianceStatus.toLowerCase()) {
+      'compliant' => Icons.check_circle,
+      'expiring' => Icons.warning,
+      'non_compliant' || 'expired' => Icons.error,
+      _ => Icons.help_outline,
+    };
   }
 
   String _getComplianceText() {
-    switch (vehicle.complianceStatus.toLowerCase()) {
-      case 'compliant':
-        return 'Ready to operate';
-      case 'expiring':
-        return 'Documents expiring soon';
-      case 'non_compliant':
-      case 'expired':
-        return 'Cannot operate - check alerts';
-      default:
-        return 'Status unknown';
-    }
+    return switch (vehicle.complianceStatus.toLowerCase()) {
+      'compliant' => 'Ready to operate',
+      'expiring' => 'Documents expiring soon',
+      'non_compliant' || 'expired' => 'Cannot operate - check alerts',
+      _ => 'Status unknown',
+    };
   }
 
   @override
   Widget build(BuildContext context) {
-    final complianceColor = _getComplianceColor(context);
+    final (complianceColor, complianceBg) = _getComplianceColors();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Card(
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? RelayColors.darkSurface1 : RelayColors.lightSurface,
+        borderRadius: BorderRadius.circular(AppTheme.borderRadius),
+        border: Border.all(
+          color: isDark ? RelayColors.darkBorderSubtle : RelayColors.lightBorderSubtle,
+          width: 1,
+        ),
+      ),
       clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -69,11 +65,11 @@ class VehicleCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: complianceColor.withAlpha(25),
+              color: complianceBg,
               border: Border(
                 left: BorderSide(
                   color: complianceColor,
-                  width: 4,
+                  width: AppTheme.accentBarWidth,
                 ),
               ),
             ),
@@ -83,45 +79,25 @@ class VehicleCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // VRN badge
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFFD54F),
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(
-                            color: Colors.black,
-                            width: 2,
-                          ),
-                        ),
-                        child: Text(
-                          vehicle.vrn,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                            color: Colors.black,
-                            letterSpacing: 1.5,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
+                      // UK Number plate badge
+                      _UkNumberPlate(vrn: vehicle.vrn),
+                      const SizedBox(height: 12),
                       Text(
                         vehicle.displayName,
-                        style: Theme.of(context).textTheme.titleMedium,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              color: isDark
+                                  ? RelayColors.darkTextPrimary
+                                  : RelayColors.lightTextPrimary,
+                            ),
                       ),
                       if (vehicle.colour != null) ...[
                         const SizedBox(height: 4),
                         Text(
                           vehicle.colour!,
                           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium
-                                    ?.color
-                                    ?.withAlpha(179),
+                                color: isDark
+                                    ? RelayColors.darkTextSecondary
+                                    : RelayColors.lightTextSecondary,
                               ),
                         ),
                       ],
@@ -137,12 +113,24 @@ class VehicleCard extends StatelessWidget {
                       size: 32,
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      vehicle.canOperate ? 'ACTIVE' : 'INACTIVE',
-                      style: TextStyle(
-                        color: complianceColor,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: complianceColor.withAlpha(25),
+                        borderRadius: BorderRadius.circular(AppTheme.borderRadius),
+                        border: Border.all(
+                          color: complianceColor.withAlpha(50),
+                          width: 1,
+                        ),
+                      ),
+                      child: Text(
+                        vehicle.canOperate ? 'ACTIVE' : 'INACTIVE',
+                        style: TextStyle(
+                          color: complianceColor,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 11,
+                          letterSpacing: 0.5,
+                        ),
                       ),
                     ),
                   ],
@@ -167,6 +155,7 @@ class VehicleCard extends StatelessWidget {
                       : null,
                   isWarning: vehicle.isMotExpiringSoon,
                   isError: vehicle.isMotExpired,
+                  isDark: isDark,
                 ),
                 const SizedBox(height: 12),
 
@@ -180,6 +169,7 @@ class VehicleCard extends StatelessWidget {
                       : null,
                   isWarning: vehicle.isTaxExpiringSoon,
                   isError: vehicle.isTaxExpired,
+                  isDark: isDark,
                 ),
 
                 // Compliance alerts
@@ -188,10 +178,11 @@ class VehicleCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.error.withAlpha(25),
-                      borderRadius: BorderRadius.circular(8),
+                      color: RelayColors.dangerBackground,
+                      borderRadius: BorderRadius.circular(AppTheme.borderRadius),
                       border: Border.all(
-                        color: Theme.of(context).colorScheme.error.withAlpha(76),
+                        color: RelayColors.danger.withAlpha(50),
+                        width: 1,
                       ),
                     ),
                     child: Column(
@@ -201,15 +192,16 @@ class VehicleCard extends StatelessWidget {
                           children: [
                             Icon(
                               Icons.warning_amber,
-                              color: Theme.of(context).colorScheme.error,
+                              color: RelayColors.danger,
                               size: 18,
                             ),
                             const SizedBox(width: 8),
                             Text(
                               'Compliance Alerts',
                               style: TextStyle(
-                                color: Theme.of(context).colorScheme.error,
-                                fontWeight: FontWeight.bold,
+                                color: RelayColors.danger,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
                               ),
                             ),
                           ],
@@ -222,16 +214,15 @@ class VehicleCard extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  '• ',
-                                  style: TextStyle(
-                                    color: Theme.of(context).colorScheme.error,
-                                  ),
+                                  '\u2022 ',
+                                  style: TextStyle(color: RelayColors.danger),
                                 ),
                                 Expanded(
                                   child: Text(
                                     alert,
                                     style: TextStyle(
-                                      color: Theme.of(context).colorScheme.error,
+                                      color: RelayColors.danger,
+                                      fontSize: 13,
                                     ),
                                   ),
                                 ),
@@ -259,6 +250,7 @@ class VehicleCard extends StatelessWidget {
                       style: TextStyle(
                         color: complianceColor,
                         fontWeight: FontWeight.w500,
+                        fontSize: 13,
                       ),
                     ),
                   ],
@@ -267,24 +259,33 @@ class VehicleCard extends StatelessWidget {
             ),
           ),
 
+          // Divider
+          Divider(
+            height: 1,
+            color: isDark ? RelayColors.darkBorderSubtle : RelayColors.lightBorderSubtle,
+          ),
+
           // Actions
           Padding(
-            padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 TextButton.icon(
                   onPressed: isDeleting ? null : onDelete,
                   icon: isDeleting
-                      ? const SizedBox(
+                      ? SizedBox(
                           width: 16,
                           height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: RelayColors.danger,
+                          ),
                         )
-                      : const Icon(Icons.delete_outline),
-                  label: Text(isDeleting ? 'Removing...' : 'Remove'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: Theme.of(context).colorScheme.error,
+                      : Icon(Icons.delete_outline, color: RelayColors.danger),
+                  label: Text(
+                    isDeleting ? 'Removing...' : 'Remove',
+                    style: TextStyle(color: RelayColors.danger),
                   ),
                 ),
               ],
@@ -298,10 +299,49 @@ class VehicleCard extends StatelessWidget {
   String _formatDate(String dateString) {
     try {
       final date = DateTime.parse(dateString);
-      return '${date.day}/${date.month}/${date.year}';
+      return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
     } catch (_) {
       return dateString;
     }
+  }
+}
+
+/// UK-style number plate display
+class _UkNumberPlate extends StatelessWidget {
+  final String vrn;
+
+  const _UkNumberPlate({required this.vrn});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFD54F), // UK plate yellow
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(
+          color: const Color(0xFF222222),
+          width: 2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(25),
+            blurRadius: 2,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Text(
+        vrn.toUpperCase(),
+        style: const TextStyle(
+          fontFamily: 'UKNumberPlate',
+          fontWeight: FontWeight.bold,
+          fontSize: 18,
+          color: Color(0xFF222222),
+          letterSpacing: 2,
+        ),
+      ),
+    );
   }
 }
 
@@ -312,6 +352,7 @@ class _StatusRow extends StatelessWidget {
   final String? subtext;
   final bool isWarning;
   final bool isError;
+  final bool isDark;
 
   const _StatusRow({
     required this.icon,
@@ -320,17 +361,23 @@ class _StatusRow extends StatelessWidget {
     this.subtext,
     this.isWarning = false,
     this.isError = false,
+    required this.isDark,
   });
 
   @override
   Widget build(BuildContext context) {
     final Color statusColor;
+    final Color statusBg;
+
     if (isError) {
-      statusColor = const Color(0xFFE63946);
+      statusColor = RelayColors.danger;
+      statusBg = RelayColors.dangerBackground;
     } else if (isWarning) {
-      statusColor = const Color(0xFFF39C12);
+      statusColor = RelayColors.warning;
+      statusBg = RelayColors.warningBackground;
     } else {
-      statusColor = const Color(0xFF2ECC71);
+      statusColor = RelayColors.success;
+      statusBg = RelayColors.successBackground;
     }
 
     return Row(
@@ -338,7 +385,7 @@ class _StatusRow extends StatelessWidget {
         Icon(
           icon,
           size: 20,
-          color: Theme.of(context).colorScheme.primary,
+          color: RelayColors.primary,
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -349,35 +396,46 @@ class _StatusRow extends StatelessWidget {
                 children: [
                   Text(
                     label,
-                    style: Theme.of(context).textTheme.bodySmall,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: isDark
+                              ? RelayColors.darkTextSecondary
+                              : RelayColors.lightTextSecondary,
+                        ),
                   ),
                   const Spacer(),
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 2,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                      color: statusColor.withAlpha(25),
-                      borderRadius: BorderRadius.circular(4),
+                      color: statusBg,
+                      borderRadius: BorderRadius.circular(AppTheme.borderRadius),
+                      border: Border.all(
+                        color: statusColor.withAlpha(50),
+                        width: 1,
+                      ),
                     ),
                     child: Text(
                       value.toUpperCase(),
                       style: TextStyle(
                         color: statusColor,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 11,
+                        letterSpacing: 0.3,
                       ),
                     ),
                   ),
                 ],
               ),
               if (subtext != null) ...[
-                const SizedBox(height: 2),
+                const SizedBox(height: 4),
                 Text(
                   subtext!,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: isError || isWarning ? statusColor : null,
+                        color: isError || isWarning
+                            ? statusColor
+                            : (isDark
+                                ? RelayColors.darkTextMuted
+                                : RelayColors.lightTextMuted),
+                        fontSize: 12,
                       ),
                 ),
               ],

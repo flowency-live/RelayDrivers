@@ -46,6 +46,52 @@ class OnboardingStep {
   }
 }
 
+/// Progress tracking for a section with granular field-level detail
+class SectionProgress {
+  /// Section identifier ('profile', 'vehicles', 'documents')
+  final String sectionId;
+
+  /// Section display title
+  final String title;
+
+  /// Section description
+  final String description;
+
+  /// Number of completed items
+  final int completedItems;
+
+  /// Total number of items required
+  final int totalItems;
+
+  /// List of missing item names for display
+  final List<String> missingItems;
+
+  /// Route to navigate to for this section
+  final String route;
+
+  const SectionProgress({
+    required this.sectionId,
+    required this.title,
+    required this.description,
+    required this.completedItems,
+    required this.totalItems,
+    this.missingItems = const [],
+    required this.route,
+  });
+
+  /// Progress percentage (0.0 to 1.0)
+  double get percent => totalItems > 0 ? completedItems / totalItems : 0.0;
+
+  /// Whether section is complete
+  bool get isComplete => completedItems >= totalItems;
+
+  /// Number of items remaining
+  int get remainingItems => totalItems - completedItems;
+
+  /// Human-readable progress string
+  String get progressText => '$completedItems of $totalItems complete';
+}
+
 /// Onboarding progress
 class OnboardingProgress {
   final List<OnboardingStep> steps;
@@ -57,6 +103,11 @@ class OnboardingProgress {
   final bool phase1Complete;
   final bool phase2Complete;
 
+  /// Section-level progress for home page tiles
+  final SectionProgress profileProgress;
+  final SectionProgress vehicleProgress;
+  final SectionProgress documentProgress;
+
   const OnboardingProgress({
     required this.steps,
     required this.completedSteps,
@@ -66,9 +117,13 @@ class OnboardingProgress {
     required this.currentPhase,
     required this.phase1Complete,
     required this.phase2Complete,
+    required this.profileProgress,
+    required this.vehicleProgress,
+    required this.documentProgress,
   });
 
-  double get progressPercent => totalSteps > 0 ? completedSteps / totalSteps : 0.0;
+  double get progressPercent =>
+      totalSteps > 0 ? completedSteps / totalSteps : 0.0;
 
   /// Get steps for a specific phase
   List<OnboardingStep> stepsForPhase(int phase) =>
@@ -77,6 +132,20 @@ class OnboardingProgress {
 
 /// Onboarding service - pure domain logic
 class OnboardingService {
+  /// Required profile fields for completion calculation
+  static const List<String> _requiredProfileFields = [
+    'firstName',
+    'lastName',
+    'phone',
+    'dateOfBirth',
+    'address',
+    'city',
+    'postcode',
+    'nationalInsurance',
+    'dvlaLicenceNumber',
+    'dvlaCheckCode',
+  ];
+
   /// Calculate onboarding progress from profile, vehicles, documents, and face status
   ///
   /// 2-Phase onboarding structure + Final step:
@@ -98,6 +167,11 @@ class OnboardingService {
     bool hasFaceRegistered = false,
   }) {
     final steps = <OnboardingStep>[];
+
+    // Calculate section progress first
+    final profileProgress = _calculateProfileProgress(profile);
+    final vehicleProgress = _calculateVehicleProgress(vehicles);
+    final documentProgress = _calculateDocumentProgress(documents, vehicles);
 
     // ============================================================
     // PHASE 1: Driver Setup
@@ -243,7 +317,149 @@ class OnboardingService {
       currentPhase: currentPhase,
       phase1Complete: phase1Complete,
       phase2Complete: phase2Complete,
+      profileProgress: profileProgress,
+      vehicleProgress: vehicleProgress,
+      documentProgress: documentProgress,
     );
+  }
+
+  /// Calculate profile section progress with field-level detail
+  SectionProgress _calculateProfileProgress(DriverProfile? profile) {
+    if (profile == null) {
+      return SectionProgress(
+        sectionId: 'profile',
+        title: 'My Profile',
+        description: 'Personal details, licence info',
+        completedItems: 0,
+        totalItems: _requiredProfileFields.length,
+        missingItems: _requiredProfileFields
+            .map((f) => _fieldDisplayName(f))
+            .toList(),
+        route: '/profile',
+      );
+    }
+
+    final completed = <String>[];
+    final missing = <String>[];
+
+    // Check each required field
+    for (final field in _requiredProfileFields) {
+      final value = _getProfileFieldValue(profile, field);
+      if (value != null && value.isNotEmpty) {
+        completed.add(field);
+      } else {
+        missing.add(_fieldDisplayName(field));
+      }
+    }
+
+    return SectionProgress(
+      sectionId: 'profile',
+      title: 'My Profile',
+      description: 'Personal details, licence info',
+      completedItems: completed.length,
+      totalItems: _requiredProfileFields.length,
+      missingItems: missing,
+      route: '/profile',
+    );
+  }
+
+  /// Calculate vehicle section progress
+  SectionProgress _calculateVehicleProgress(List<Vehicle> vehicles) {
+    // For vehicles, we just need at least one vehicle
+    final hasVehicle = vehicles.isNotEmpty;
+
+    return SectionProgress(
+      sectionId: 'vehicles',
+      title: 'Vehicles',
+      description: 'Manage your vehicles',
+      completedItems: hasVehicle ? 1 : 0,
+      totalItems: 1,
+      missingItems: hasVehicle ? [] : ['Add at least one vehicle'],
+      route: '/vehicles',
+    );
+  }
+
+  /// Calculate document section progress
+  SectionProgress _calculateDocumentProgress(
+    List<DriverDocument> documents,
+    List<Vehicle> vehicles,
+  ) {
+    final required = <String>[];
+    final missing = <String>[];
+
+    // PHV Driver Licence is always required
+    required.add('PHV Driver Licence');
+    final hasDriverLicence = documents.any(
+      (d) => d.documentType == DocumentType.phvDriverLicense,
+    );
+    if (!hasDriverLicence) {
+      missing.add('PHV Driver Licence');
+    }
+
+    // If we have vehicles, we need vehicle documents
+    if (vehicles.isNotEmpty) {
+      // PHV Vehicle Licence (one per vehicle)
+      required.add('PHV Vehicle Licence');
+      final hasVehicleLicence = documents.any(
+        (d) => d.documentType == DocumentType.phvVehicleLicense,
+      );
+      if (!hasVehicleLicence) {
+        missing.add('PHV Vehicle Licence');
+      }
+
+      // Vehicle Insurance (one per vehicle)
+      required.add('Vehicle Insurance');
+      final hasInsurance = documents.any(
+        (d) => d.documentType == DocumentType.vehicleInsurance,
+      );
+      if (!hasInsurance) {
+        missing.add('Vehicle Insurance');
+      }
+    }
+
+    return SectionProgress(
+      sectionId: 'documents',
+      title: 'Documents',
+      description: 'Upload documents',
+      completedItems: required.length - missing.length,
+      totalItems: required.length,
+      missingItems: missing,
+      route: '/documents',
+    );
+  }
+
+  /// Get a profile field value by name
+  String? _getProfileFieldValue(DriverProfile profile, String field) {
+    return switch (field) {
+      'firstName' => profile.firstName,
+      'lastName' => profile.lastName,
+      'phone' => profile.phone,
+      'dateOfBirth' => profile.dateOfBirth,
+      'address' => profile.address,
+      'city' => profile.city,
+      'postcode' => profile.postcode,
+      'nationalInsurance' => profile.nationalInsurance,
+      'dvlaLicenceNumber' => profile.dvlaLicenceNumber,
+      'dvlaCheckCode' => profile.dvlaCheckCode,
+      _ => null,
+    };
+  }
+
+  /// Get human-readable name for a profile field
+  String _fieldDisplayName(String field) {
+    return switch (field) {
+      'firstName' => 'First Name',
+      'lastName' => 'Last Name',
+      'phone' => 'Phone Number',
+      'dateOfBirth' => 'Date of Birth',
+      'address' => 'Address',
+      'city' => 'City',
+      'postcode' => 'Postcode',
+      'nationalInsurance' => 'National Insurance',
+      'dvlaLicenceNumber' => 'Licence Number',
+      'dvlaCheckCode' => 'Check Code',
+      _ => field,
+    };
   }
 
   /// Check if profile has minimum required fields
