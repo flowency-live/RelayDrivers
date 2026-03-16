@@ -220,7 +220,7 @@ class _ProfileContentState extends ConsumerState<_ProfileContent>
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.credit_card, size: 18),
+                    Icon(Icons.credit_card, size: 18, color: const Color(0xFFD4738B)),
                     SizedBox(width: 8),
                     Text('Driving Licence'),
                   ],
@@ -798,59 +798,9 @@ class _UkDrivingLicenceCardState extends State<_UkDrivingLicenceCard> {
                     // Header row
                     Row(
                       children: [
-                        // UK flag
-                        Container(
-                          width: 32,
-                          height: 22,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(2),
-                            border: Border.all(
-                              color: Colors.black.withAlpha(50),
-                              width: 0.5,
-                            ),
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(2),
-                            child: Stack(
-                              children: [
-                                Container(color: const Color(0xFF00247D)),
-                                // Simplified Union Jack
-                                Center(
-                                  child: Container(
-                                    width: 32,
-                                    height: 4,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                Center(
-                                  child: Container(
-                                    width: 4,
-                                    height: 22,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                Center(
-                                  child: Container(
-                                    width: 32,
-                                    height: 2,
-                                    color: const Color(0xFFCF142B),
-                                  ),
-                                ),
-                                Center(
-                                  child: Container(
-                                    width: 2,
-                                    height: 22,
-                                    color: const Color(0xFFCF142B),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
                         const Expanded(
                           child: Text(
-                            'DRIVING LICENCE',
+                            'UK DRIVING LICENCE',
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w700,
@@ -917,11 +867,6 @@ class _UkDrivingLicenceCardState extends State<_UkDrivingLicenceCard> {
                                 label: '2. First names',
                                 value: profile.firstName.toUpperCase(),
                               ),
-                              const SizedBox(height: 8),
-                              _buildLicenceField(
-                                label: '3. Date of birth',
-                                value: profile.dateOfBirth ?? '-',
-                              ),
                             ],
                           ),
                         ),
@@ -963,21 +908,17 @@ class _UkDrivingLicenceCardState extends State<_UkDrivingLicenceCard> {
                           ),
                         ),
                         const SizedBox(width: 16),
-                        // Status indicator
+                        // Status indicator - uses dark colors for WCAG contrast on pink
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 12,
                             vertical: 6,
                           ),
                           decoration: BoxDecoration(
-                            color: (hasLicence && hasCheckCode)
-                                ? RelayColors.success.withAlpha(40)
-                                : RelayColors.warning.withAlpha(40),
+                            color: Colors.white.withAlpha(200),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                              color: (hasLicence && hasCheckCode)
-                                  ? RelayColors.success
-                                  : RelayColors.warning,
+                              color: const Color(0xFF2D1F3D).withAlpha(80),
                               width: 1,
                             ),
                           ),
@@ -987,21 +928,17 @@ class _UkDrivingLicenceCardState extends State<_UkDrivingLicenceCard> {
                               Icon(
                                 (hasLicence && hasCheckCode)
                                     ? Icons.check_circle
-                                    : Icons.warning_amber_rounded,
+                                    : Icons.radio_button_unchecked,
                                 size: 16,
-                                color: (hasLicence && hasCheckCode)
-                                    ? RelayColors.success
-                                    : RelayColors.warning,
+                                color: const Color(0xFF2D1F3D),
                               ),
                               const SizedBox(width: 4),
                               Text(
                                 (hasLicence && hasCheckCode) ? 'Complete' : 'Required',
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
-                                  color: (hasLicence && hasCheckCode)
-                                      ? RelayColors.success
-                                      : RelayColors.warning,
+                                  color: Color(0xFF2D1F3D),
                                 ),
                               ),
                             ],
@@ -1113,13 +1050,13 @@ class _UkDrivingLicenceCardState extends State<_UkDrivingLicenceCard> {
           else ...[
             _buildCardButton(
               icon: Icons.check,
-              color: RelayColors.success,
+              color: const Color(0xFF2D1F3D),
               onTap: _saveLicenceNumber,
             ),
             const SizedBox(width: 4),
             _buildCardButton(
               icon: Icons.close,
-              color: RelayColors.danger,
+              color: const Color(0xFF2D1F3D).withAlpha(150),
               onTap: () {
                 setState(() {
                   _isEditingLicence = false;
@@ -1227,13 +1164,13 @@ class _UkDrivingLicenceCardState extends State<_UkDrivingLicenceCard> {
           else ...[
             _buildCardButton(
               icon: Icons.check,
-              color: RelayColors.success,
+              color: const Color(0xFF2D1F3D),
               onTap: _saveCheckCode,
             ),
             const SizedBox(width: 4),
             _buildCardButton(
               icon: Icons.close,
-              color: RelayColors.danger,
+              color: const Color(0xFF2D1F3D).withAlpha(150),
               onTap: () {
                 setState(() {
                   _isEditingCheckCode = false;
