@@ -343,6 +343,7 @@ class _PhoneLoginPageState extends ConsumerState<PhoneLoginPage> {
           keyboardType: TextInputType.number,
           textInputAction: TextInputAction.done,
           textAlign: TextAlign.center,
+          autofillHints: const [AutofillHints.oneTimeCode],
           style: const TextStyle(
             fontSize: 24,
             letterSpacing: 8,
@@ -355,6 +356,7 @@ class _PhoneLoginPageState extends ConsumerState<PhoneLoginPage> {
           decoration: const InputDecoration(
             hintText: '------',
             counterText: '',
+            labelText: 'Verification code',
           ),
           maxLength: 6,
           onChanged: (value) {

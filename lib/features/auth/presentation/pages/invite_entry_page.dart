@@ -365,10 +365,11 @@ class _InviteEntryPageState extends ConsumerState<InviteEntryPage> {
         ],
         const SizedBox(height: 32),
 
-        // OTP input
+        // OTP input with autofill hint for SMS autofill (iOS/Android)
         TextField(
           controller: _otpController,
           focusNode: _otpFocusNode,
+          autofillHints: const [AutofillHints.oneTimeCode],
           decoration: const InputDecoration(
             labelText: 'Verification Code',
             hintText: '000000',
