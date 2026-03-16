@@ -197,7 +197,7 @@ class OnboardingService {
 
     // Step 2: Upload PHV Driver Licence
     final hasDriverLicense = documents.any(
-      (d) => d.documentType == DocumentType.phvDriverLicense,
+      (d) => d.documentType == DocumentType.phvDriverLicence,
     );
     steps.add(OnboardingStep(
       id: 'phv_driver_licence',
@@ -235,7 +235,7 @@ class OnboardingService {
 
     // Step 4: Upload PHV Vehicle Licence
     final hasVehicleLicense = documents.any(
-      (d) => d.documentType == DocumentType.phvVehicleLicense,
+      (d) => d.documentType == DocumentType.phvVehicleLicence,
     );
     steps.add(OnboardingStep(
       id: 'phv_vehicle_licence',
@@ -250,7 +250,7 @@ class OnboardingService {
 
     // Step 5: Upload Hire & Reward Insurance
     final hasVehicleInsurance = documents.any(
-      (d) => d.documentType == DocumentType.vehicleInsurance,
+      (d) => d.documentType == DocumentType.hireRewardInsurance,
     );
     steps.add(OnboardingStep(
       id: 'vehicle_insurance',
@@ -390,7 +390,7 @@ class OnboardingService {
     // PHV Driver Licence is always required
     required.add('PHV Driver Licence');
     final hasDriverLicence = documents.any(
-      (d) => d.documentType == DocumentType.phvDriverLicense,
+      (d) => d.documentType == DocumentType.phvDriverLicence,
     );
     if (!hasDriverLicence) {
       missing.add('PHV Driver Licence');
@@ -401,7 +401,7 @@ class OnboardingService {
       // PHV Vehicle Licence (one per vehicle)
       required.add('PHV Vehicle Licence');
       final hasVehicleLicence = documents.any(
-        (d) => d.documentType == DocumentType.phvVehicleLicense,
+        (d) => d.documentType == DocumentType.phvVehicleLicence,
       );
       if (!hasVehicleLicence) {
         missing.add('PHV Vehicle Licence');
@@ -410,7 +410,7 @@ class OnboardingService {
       // Vehicle Insurance (one per vehicle)
       required.add('Vehicle Insurance');
       final hasInsurance = documents.any(
-        (d) => d.documentType == DocumentType.vehicleInsurance,
+        (d) => d.documentType == DocumentType.hireRewardInsurance,
       );
       if (!hasInsurance) {
         missing.add('Vehicle Insurance');

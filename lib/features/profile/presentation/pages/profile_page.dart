@@ -995,7 +995,7 @@ class _ProfileHeaderState extends ConsumerState<_ProfileHeader> {
                         shape: BoxShape.circle,
                         color: RelayColors.primary,
                         border: Border.all(
-                          color: isDark ? RelayColors.darkSurface : Colors.white,
+                          color: isDark ? RelayColors.darkSurface1 : Colors.white,
                           width: 2,
                         ),
                       ),

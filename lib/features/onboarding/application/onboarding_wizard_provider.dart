@@ -221,7 +221,7 @@ class OnboardingWizardNotifier extends StateNotifier<OnboardingWizardState> {
       if (docState is DocumentLoaded) {
         for (final doc in docState.documents) {
           switch (doc.documentType) {
-            case DocumentType.phvDriverLicense:
+            case DocumentType.phvDriverLicence:
               state = state.copyWith(
                 data: state.data.copyWith(
                   phvDriverLicenceNumber: doc.licenseNumber,
@@ -231,7 +231,7 @@ class OnboardingWizardNotifier extends StateNotifier<OnboardingWizardState> {
                 ),
               );
               break;
-            case DocumentType.phvVehicleLicense:
+            case DocumentType.phvVehicleLicence:
               state = state.copyWith(
                 data: state.data.copyWith(
                   phvVehicleLicenceNumber: doc.licenseNumber,
@@ -240,7 +240,7 @@ class OnboardingWizardNotifier extends StateNotifier<OnboardingWizardState> {
                 ),
               );
               break;
-            case DocumentType.vehicleInsurance:
+            case DocumentType.hireRewardInsurance:
               state = state.copyWith(
                 data: state.data.copyWith(
                   insurancePolicyNumber: doc.licenseNumber,
@@ -412,7 +412,7 @@ class OnboardingWizardNotifier extends StateNotifier<OnboardingWizardState> {
       final docRepository = _ref.read(documentRepositoryProvider);
       await docRepository.uploadDocument(
         request: DocumentUploadRequest(
-          documentType: DocumentType.phvDriverLicense,
+          documentType: DocumentType.phvDriverLicence,
           expiryDate: expiryDate,
           licenseNumber: licenceNumber,
           issuingAuthority: authority,
@@ -505,7 +505,7 @@ class OnboardingWizardNotifier extends StateNotifier<OnboardingWizardState> {
       final docRepository = _ref.read(documentRepositoryProvider);
       await docRepository.uploadDocument(
         request: DocumentUploadRequest(
-          documentType: DocumentType.phvVehicleLicense,
+          documentType: DocumentType.phvVehicleLicence,
           expiryDate: expiryDate,
           licenseNumber: licenceNumber,
           vehicleVrn: state.data.vehicleVrn,
@@ -556,7 +556,7 @@ class OnboardingWizardNotifier extends StateNotifier<OnboardingWizardState> {
       final docRepository = _ref.read(documentRepositoryProvider);
       await docRepository.uploadDocument(
         request: DocumentUploadRequest(
-          documentType: DocumentType.vehicleInsurance,
+          documentType: DocumentType.hireRewardInsurance,
           expiryDate: expiryDate,
           licenseNumber: policyNumber,
           vehicleVrn: state.data.vehicleVrn,
