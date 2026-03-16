@@ -10,6 +10,7 @@ import '../../../onboarding/domain/models/uk_address.dart';
 import '../../../onboarding/presentation/widgets/address_autocomplete_field.dart';
 import '../../application/profile_providers.dart';
 import '../../domain/models/driver_profile.dart';
+import '../widgets/dvla_licence_input.dart';
 import '../widgets/editable_profile_field.dart';
 import '../widgets/locked_profile_field.dart';
 
@@ -173,39 +174,75 @@ class _ProfileContentState extends ConsumerState<_ProfileContent> {
           _ProfileHeader(profile: profile),
           const SizedBox(height: 32),
 
-          // Personal Details (Locked)
+          // Personal Details (Locked after first entry)
           _SectionHeader(
             title: 'Personal Details',
             isComplete: profile.dateOfBirth != null && profile.nationalInsurance != null,
           ),
           const SizedBox(height: 12),
-          LockedProfileField(
-            icon: Icons.cake_outlined,
-            label: 'Date of Birth',
-            value: profile.dateOfBirth,
-            lockReason: 'Set during onboarding',
-          ),
+          // DOB: Editable if not set, locked if set
+          if (profile.dateOfBirth == null || profile.dateOfBirth!.isEmpty)
+            _DateOfBirthField(
+              value: profile.dateOfBirth,
+              onSave: (value) async {
+                final request = ProfileUpdateRequest(
+                  firstName: profile.firstName,
+                  lastName: profile.lastName,
+                  dateOfBirth: value,
+                );
+                return await ref.read(profileStateProvider.notifier).updateProfile(request);
+              },
+            )
+          else
+            LockedProfileField(
+              icon: Icons.cake_outlined,
+              label: 'Date of Birth',
+              value: profile.dateOfBirth,
+              lockReason: 'Contact support to change',
+            ),
           const SizedBox(height: 8),
-          LockedProfileField(
-            icon: Icons.badge_outlined,
-            label: 'National Insurance',
-            value: profile.nationalInsurance,
-            masked: true,
-            lockReason: 'Set during onboarding',
-          ),
-          const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton.icon(
-              onPressed: _showRequestChangeDialog,
-              icon: const Icon(Icons.support_agent, size: 18),
-              label: const Text('Request Changes'),
-              style: TextButton.styleFrom(
-                foregroundColor: RelayColors.primary,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          // NI: Editable if not set, locked if set
+          if (profile.nationalInsurance == null || profile.nationalInsurance!.isEmpty)
+            EditableProfileField(
+              icon: Icons.badge_outlined,
+              label: 'National Insurance',
+              value: profile.nationalInsurance,
+              textCapitalization: TextCapitalization.characters,
+              validator: _validateNationalInsurance,
+              onSave: (value) async {
+                final request = ProfileUpdateRequest(
+                  firstName: profile.firstName,
+                  lastName: profile.lastName,
+                  nationalInsurance: value,
+                );
+                return await ref.read(profileStateProvider.notifier).updateProfile(request);
+              },
+            )
+          else
+            LockedProfileField(
+              icon: Icons.badge_outlined,
+              label: 'National Insurance',
+              value: profile.nationalInsurance,
+              masked: true,
+              lockReason: 'Contact support to change',
+            ),
+          // Only show "Request Changes" if at least one field is locked
+          if ((profile.dateOfBirth != null && profile.dateOfBirth!.isNotEmpty) ||
+              (profile.nationalInsurance != null && profile.nationalInsurance!.isNotEmpty)) ...[
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: _showRequestChangeDialog,
+                icon: const Icon(Icons.support_agent, size: 18),
+                label: const Text('Request Changes'),
+                style: TextButton.styleFrom(
+                  foregroundColor: RelayColors.primary,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                ),
               ),
             ),
-          ),
+          ],
           const SizedBox(height: 24),
 
           // Contact Information
@@ -329,20 +366,21 @@ class _ProfileContentState extends ConsumerState<_ProfileContent> {
             isComplete: profile.hasDvlaDetails,
           ),
           const SizedBox(height: 12),
-          EditableProfileField(
-            icon: Icons.credit_card_outlined,
-            label: 'Licence Number',
-            value: profile.dvlaLicenceNumber,
-            textCapitalization: TextCapitalization.characters,
+          DvlaLicenceInput(
+            initialValue: profile.dvlaLicenceNumber,
+            firstName: profile.firstName,
+            lastName: profile.lastName,
+            dateOfBirth: profile.dateOfBirth,
             onSave: (value) async {
               final request = ProfileUpdateRequest(
                 firstName: profile.firstName,
                 lastName: profile.lastName,
-                dvlaLicenceNumber: value?.toUpperCase(),
+                dvlaLicenceNumber: value,
               );
               return await ref.read(profileStateProvider.notifier).updateProfile(request);
             },
           ),
+          const SizedBox(height: 8),
           EditableProfileField(
             icon: Icons.pin_outlined,
             label: 'Check Code',
@@ -353,19 +391,6 @@ class _ProfileContentState extends ConsumerState<_ProfileContent> {
                 firstName: profile.firstName,
                 lastName: profile.lastName,
                 dvlaCheckCode: value?.toUpperCase(),
-              );
-              return await ref.read(profileStateProvider.notifier).updateProfile(request);
-            },
-          ),
-          EditableProfileField(
-            icon: Icons.calendar_today_outlined,
-            label: 'Licence Expiry',
-            value: profile.dvlaLicenceExpiry,
-            onSave: (value) async {
-              final request = ProfileUpdateRequest(
-                firstName: profile.firstName,
-                lastName: profile.lastName,
-                dvlaLicenceExpiry: value,
               );
               return await ref.read(profileStateProvider.notifier).updateProfile(request);
             },
@@ -383,6 +408,137 @@ class _ProfileContentState extends ConsumerState<_ProfileContent> {
         profile.city!.isNotEmpty &&
         profile.postcode != null &&
         profile.postcode!.isNotEmpty;
+  }
+
+  /// Validate UK National Insurance number format
+  /// Format: 2 letters, 6 numbers, 1 letter (e.g., AB123456C)
+  String? _validateNationalInsurance(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'National Insurance number is required';
+    }
+    final cleaned = value.replaceAll(RegExp(r'\s'), '').toUpperCase();
+    // UK NI format: 2 prefix letters, 6 digits, 1 suffix letter
+    final niRegex = RegExp(r'^[A-Z]{2}\d{6}[A-Z]$');
+    if (!niRegex.hasMatch(cleaned)) {
+      return 'Format: AB123456C';
+    }
+    return null;
+  }
+}
+
+/// Date of Birth field with date picker
+class _DateOfBirthField extends StatefulWidget {
+  final String? value;
+  final Future<bool> Function(String?) onSave;
+
+  const _DateOfBirthField({
+    required this.value,
+    required this.onSave,
+  });
+
+  @override
+  State<_DateOfBirthField> createState() => _DateOfBirthFieldState();
+}
+
+class _DateOfBirthFieldState extends State<_DateOfBirthField> {
+  bool _isSaving = false;
+
+  Future<void> _selectDate() async {
+    final now = DateTime.now();
+    // Must be at least 17 years old to be a driver
+    final maxDate = DateTime(now.year - 17, now.month, now.day);
+    // Oldest possible date
+    final minDate = DateTime(now.year - 100);
+
+    final initialDate = widget.value != null
+        ? _parseDate(widget.value!)
+        : DateTime(now.year - 30, 1, 1);
+
+    final selectedDate = await showDatePicker(
+      context: context,
+      initialDate: initialDate.isBefore(maxDate) ? initialDate : maxDate,
+      firstDate: minDate,
+      lastDate: maxDate,
+      helpText: 'Select your date of birth',
+    );
+
+    if (selectedDate != null && mounted) {
+      setState(() => _isSaving = true);
+      // Format as DD/MM/YYYY for UK format
+      final formatted = '${selectedDate.day.toString().padLeft(2, '0')}/${selectedDate.month.toString().padLeft(2, '0')}/${selectedDate.year}';
+      await widget.onSave(formatted);
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
+  }
+
+  DateTime _parseDate(String value) {
+    // Try DD/MM/YYYY format first
+    final parts = value.split('/');
+    if (parts.length == 3) {
+      final day = int.tryParse(parts[0]);
+      final month = int.tryParse(parts[1]);
+      final year = int.tryParse(parts[2]);
+      if (day != null && month != null && year != null) {
+        return DateTime(year, month, day);
+      }
+    }
+    return DateTime(1990, 1, 1);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return GestureDetector(
+      onTap: _isSaving ? null : _selectDate,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Row(
+          children: [
+            Icon(
+              Icons.cake_outlined,
+              size: 20,
+              color: theme.colorScheme.primary,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Date of Birth',
+                    style: theme.textTheme.bodySmall,
+                  ),
+                  Text(
+                    widget.value ?? 'Tap to set',
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: widget.value == null
+                          ? theme.textTheme.bodySmall?.color
+                          : null,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (_isSaving)
+              const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            else
+              Icon(
+                Icons.edit,
+                size: 16,
+                color: theme.colorScheme.outline,
+              ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
