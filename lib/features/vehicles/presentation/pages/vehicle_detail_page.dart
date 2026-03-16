@@ -103,6 +103,7 @@ class _VehicleDetailPageState extends ConsumerState<VehicleDetailPage> {
     VehiclePhotoUploadSheet.show(
       context,
       vrn: widget.vrn,
+      existingPhotoCount: _photos.length,
       onUpload: ({
         required photoType,
         required photoBytes,
