@@ -222,7 +222,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   const SizedBox(height: 24),
 
                   // Submit button
-                  ElevatedButton(
+                  FilledButton(
                     onPressed: isLoading ? null : _handleLogin,
                     child: isLoading
                         ? const SizedBox(
@@ -233,7 +233,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                               color: Colors.white,
                             ),
                           )
-                        : Text(_magicLinkMode ? 'Send magic link' : 'Sign in'),
+                        : Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            child: Text(_magicLinkMode ? 'Send magic link' : 'Sign in'),
+                          ),
                   ),
 
                   const SizedBox(height: 16),

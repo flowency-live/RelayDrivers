@@ -74,22 +74,22 @@ class RelayColors {
   /// Success - completed, verified, active
   static const Color success = Color(0xFF10B981);
   static const Color successLight = Color(0xFF34D399);
-  static const Color successBackground = Color(0xFF10B98120);
+  static const Color successBackground = Color(0x1A10B981); // 10% opacity
 
   /// Warning - attention needed, pending
   static const Color warning = Color(0xFFF59E0B);
   static const Color warningLight = Color(0xFFFBBF24);
-  static const Color warningBackground = Color(0xFFF59E0B20);
+  static const Color warningBackground = Color(0x1AF59E0B); // 10% opacity
 
   /// Danger - error, expired, critical
   static const Color danger = Color(0xFFEF4444);
   static const Color dangerLight = Color(0xFFF87171);
-  static const Color dangerBackground = Color(0xFFEF444420);
+  static const Color dangerBackground = Color(0x1AEF4444); // 10% opacity
 
   /// Info - informational, neutral highlight
   static const Color info = Color(0xFF3B82F6);
   static const Color infoLight = Color(0xFF60A5FA);
-  static const Color infoBackground = Color(0xFF3B82F620);
+  static const Color infoBackground = Color(0x1A3B82F6); // 10% opacity
 
   // ============================================
   // SECTION ACCENT COLORS (for home tiles)

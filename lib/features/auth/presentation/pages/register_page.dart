@@ -288,7 +288,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                 const SizedBox(height: 24),
 
                 // Register button
-                ElevatedButton(
+                FilledButton(
                   onPressed: isLoading ? null : _handleRegister,
                   child: isLoading
                       ? const SizedBox(
@@ -299,7 +299,10 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                             color: Colors.white,
                           ),
                         )
-                      : const Text('Create Account'),
+                      : const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 16),
+                          child: Text('Create Account'),
+                        ),
                 ),
 
                 const SizedBox(height: 16),

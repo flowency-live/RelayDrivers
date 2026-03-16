@@ -9,6 +9,7 @@ import '../../../onboarding/application/onboarding_providers.dart';
 import '../../../../config/environment.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/theme/relay_colors.dart';
+import '../../../../core/theme/theme_provider.dart';
 import '../../../../core/widgets/pwa_install_banner.dart';
 import '../widgets/home_action_tile.dart';
 import '../widgets/operator_selector.dart';
@@ -63,6 +64,8 @@ class _HomePageState extends ConsumerState<HomePage> {
       appBar: AppBar(
         title: const Text('Relay Drivers'),
         actions: [
+          // Theme toggle
+          _ThemeToggleButton(),
           const NotificationBellWithPolling(),
           IconButton(
             icon: const Icon(Icons.logout),
@@ -160,6 +163,43 @@ class _HomePageState extends ConsumerState<HomePage> {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Theme toggle button for app bar
+class _ThemeToggleButton extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeModeProvider);
+
+    IconData icon;
+    String tooltip;
+
+    switch (themeMode) {
+      case AppThemeMode.system:
+        icon = Icons.brightness_auto;
+        tooltip = 'Theme: System';
+      case AppThemeMode.light:
+        icon = Icons.light_mode;
+        tooltip = 'Theme: Light';
+      case AppThemeMode.dark:
+        icon = Icons.dark_mode;
+        tooltip = 'Theme: Dark';
+    }
+
+    return IconButton(
+      icon: Icon(icon),
+      tooltip: tooltip,
+      onPressed: () {
+        // Cycle through: system -> light -> dark -> system
+        final next = switch (themeMode) {
+          AppThemeMode.system => AppThemeMode.light,
+          AppThemeMode.light => AppThemeMode.dark,
+          AppThemeMode.dark => AppThemeMode.system,
+        };
+        ref.read(themeModeProvider.notifier).setThemeMode(next);
+      },
     );
   }
 }

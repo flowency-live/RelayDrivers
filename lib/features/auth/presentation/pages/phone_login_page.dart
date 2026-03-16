@@ -286,7 +286,7 @@ class _PhoneLoginPageState extends ConsumerState<PhoneLoginPage> {
           onFieldSubmitted: (_) => _handleSendOtp(),
         ),
         const SizedBox(height: 24),
-        ElevatedButton(
+        FilledButton(
           onPressed: isLoading ? null : _handleSendOtp,
           child: isLoading
               ? const SizedBox(
@@ -297,7 +297,10 @@ class _PhoneLoginPageState extends ConsumerState<PhoneLoginPage> {
                     color: Colors.white,
                   ),
                 )
-              : const Text('Send verification code'),
+              : const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  child: Text('Send verification code'),
+                ),
         ),
       ],
     );
@@ -378,9 +381,12 @@ class _PhoneLoginPageState extends ConsumerState<PhoneLoginPage> {
         ),
         const SizedBox(height: 24),
         // Verify button
-        ElevatedButton(
+        FilledButton(
           onPressed: _otpController.text.length == 6 ? _handleVerifyOtp : null,
-          child: const Text('Verify code'),
+          child: const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: Text('Verify code'),
+          ),
         ),
       ],
     );
@@ -492,9 +498,12 @@ class _PhoneLoginPageState extends ConsumerState<PhoneLoginPage> {
             ),
           ),
           const SizedBox(height: 16),
-          ElevatedButton(
+          FilledButton(
             onPressed: _handleVerifyOtp,
-            child: const Text('Try again'),
+            child: const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Text('Try again'),
+            ),
           ),
           const SizedBox(height: 8),
           OutlinedButton(

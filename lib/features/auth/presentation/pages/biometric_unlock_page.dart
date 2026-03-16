@@ -147,10 +147,13 @@ class _BiometricUnlockPageState extends ConsumerState<BiometricUnlockPage> {
           ),
         ),
         const SizedBox(height: 24),
-        ElevatedButton.icon(
+        FilledButton.icon(
           onPressed: _promptBiometric,
           icon: const Icon(Icons.fingerprint),
-          label: const Text('Unlock with biometric'),
+          label: const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: Text('Unlock with biometric'),
+          ),
         ),
       ],
     );
@@ -179,10 +182,13 @@ class _BiometricUnlockPageState extends ConsumerState<BiometricUnlockPage> {
         ),
         if (canRetry) ...[
           const SizedBox(height: 24),
-          ElevatedButton.icon(
+          FilledButton.icon(
             onPressed: _promptBiometric,
             icon: const Icon(Icons.refresh),
-            label: const Text('Try again'),
+            label: const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Text('Try again'),
+            ),
           ),
         ],
       ],
@@ -229,10 +235,13 @@ class _BiometricUnlockPageState extends ConsumerState<BiometricUnlockPage> {
           ),
         ],
         const SizedBox(height: 24),
-        ElevatedButton.icon(
+        FilledButton.icon(
           onPressed: _skipToLogin,
           icon: const Icon(Icons.phone),
-          label: const Text('Sign in with phone'),
+          label: const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: Text('Sign in with phone'),
+          ),
         ),
       ],
     );

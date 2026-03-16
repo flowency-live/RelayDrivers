@@ -71,12 +71,15 @@ class _MagicLinkPageState extends ConsumerState<MagicLinkPage> {
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
                 const SizedBox(height: 24),
-                ElevatedButton(
+                FilledButton(
                   onPressed: () {
                     // Navigate back to login
                     Navigator.of(context).pushReplacementNamed('/login');
                   },
-                  child: const Text('Return to Login'),
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    child: Text('Return to Login'),
+                  ),
                 ),
               ] else if (authState is AuthAuthenticated) ...[
                 Icon(
