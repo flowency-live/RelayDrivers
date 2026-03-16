@@ -936,8 +936,35 @@ class InviteAuthNotifier extends StateNotifier<InviteAuthState> {
 
         // Handle 400 - validation errors
         if (statusCode == 400) {
+          // Check for details array (Zod validation errors)
+          final details = data['details'];
+          if (details is List && details.isNotEmpty) {
+            // Extract the first validation error message
+            final firstError = details.first.toString();
+            // Make it more user-friendly
+            if (firstError.contains('format: DRV-')) {
+              return (
+                message: 'Invalid invite code format. Codes start with DRV- followed by 8 characters.',
+                isExpired: false,
+                isUsed: false,
+              );
+            }
+            return (
+              message: firstError,
+              isExpired: false,
+              isUsed: false,
+            );
+          }
+          // Check if error message indicates format issue
+          if (errorMessage.contains('validation') || errorMessage.contains('format')) {
+            return (
+              message: 'Invalid invite code. Please check the format and try again.',
+              isExpired: false,
+              isUsed: false,
+            );
+          }
           return (
-            message: data['error'] as String? ?? 'Invalid invite code format. Please check and try again.',
+            message: data['error'] as String? ?? 'Invalid invite code. Please check and try again.',
             isExpired: false,
             isUsed: false,
           );
