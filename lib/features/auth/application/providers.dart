@@ -884,6 +884,78 @@ class InviteAuthNotifier extends StateNotifier<InviteAuthState> {
   }
 
   ({String message, bool isExpired, bool isUsed}) _parseInviteError(dynamic error) {
+    // First, try to extract error details from DioException response
+    if (error is DioException && error.response?.data != null) {
+      final data = error.response!.data;
+      if (data is Map) {
+        final errorMessage = (data['error'] as String? ?? data['message'] as String? ?? '').toLowerCase();
+        final statusCode = error.response?.statusCode;
+
+        // Handle 404 - invite not found
+        if (statusCode == 404 || errorMessage.contains('not found')) {
+          return (
+            message: 'Invalid invite code. Please check and try again.',
+            isExpired: false,
+            isUsed: false,
+          );
+        }
+
+        // Handle 410 - expired or already used
+        if (statusCode == 410) {
+          if (errorMessage.contains('expired')) {
+            return (
+              message: 'This invite code has expired. Please contact your fleet manager.',
+              isExpired: true,
+              isUsed: false,
+            );
+          }
+          if (errorMessage.contains('already') || errorMessage.contains('used') || errorMessage.contains('log in')) {
+            return (
+              message: data['message'] as String? ?? 'This invite code has already been used.',
+              isExpired: false,
+              isUsed: true,
+            );
+          }
+          if (errorMessage.contains('revoked')) {
+            return (
+              message: 'Your access to this operator has been revoked. Please contact your fleet manager.',
+              isExpired: true,
+              isUsed: false,
+            );
+          }
+        }
+
+        // Handle 403 - phone mismatch
+        if (statusCode == 403 && (errorMessage.contains('phone') || errorMessage.contains('match'))) {
+          return (
+            message: 'Phone number does not match the invite. Please use the number your fleet manager registered.',
+            isExpired: false,
+            isUsed: false,
+          );
+        }
+
+        // Handle 400 - validation errors
+        if (statusCode == 400) {
+          return (
+            message: data['error'] as String? ?? 'Invalid invite code format. Please check and try again.',
+            isExpired: false,
+            isUsed: false,
+          );
+        }
+
+        // Return the actual error message from the server
+        final serverMessage = data['error'] as String? ?? data['message'] as String?;
+        if (serverMessage != null && serverMessage.isNotEmpty) {
+          return (
+            message: serverMessage,
+            isExpired: errorMessage.contains('expired'),
+            isUsed: errorMessage.contains('already') || errorMessage.contains('used'),
+          );
+        }
+      }
+    }
+
+    // Fallback - parse error string
     final errorStr = error.toString().toLowerCase();
 
     if (errorStr.contains('expired')) {
@@ -923,6 +995,18 @@ class InviteAuthNotifier extends StateNotifier<InviteAuthState> {
   }
 
   String _parseError(dynamic error) {
+    // Try to extract message from DioException response
+    if (error is DioException && error.response?.data != null) {
+      final data = error.response!.data;
+      if (data is Map) {
+        // Return the actual server error message if available
+        final message = data['error'] as String? ?? data['message'] as String?;
+        if (message != null && message.isNotEmpty) {
+          return message;
+        }
+      }
+    }
+
     final errorStr = error.toString();
 
     if (errorStr.contains('Too many')) {
@@ -931,8 +1015,14 @@ class InviteAuthNotifier extends StateNotifier<InviteAuthState> {
     if (errorStr.contains('rate') || errorStr.contains('429')) {
       return 'Too many requests. Please wait a moment.';
     }
+    if (errorStr.contains('network') || errorStr.contains('connection')) {
+      return 'Network error. Please check your connection and try again.';
+    }
+    if (errorStr.contains('timeout')) {
+      return 'Request timed out. Please try again.';
+    }
 
-    return 'An error occurred. Please try again.';
+    return 'Something went wrong. Please try again.';
   }
 }
 
