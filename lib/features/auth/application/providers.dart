@@ -42,32 +42,43 @@ class AuthNotifier extends StateNotifier<AuthState> {
   /// Check existing session on app start
   Future<void> checkSession() async {
     state = const AuthLoading();
+    print('[AuthNotifier] checkSession: starting session check');
 
     try {
       final hasToken = await _repository.hasValidToken();
+      print('[AuthNotifier] checkSession: hasToken=$hasToken');
       if (!hasToken) {
+        print('[AuthNotifier] checkSession: no token found, setting unauthenticated');
         state = const AuthUnauthenticated();
         return;
       }
 
+      print('[AuthNotifier] checkSession: calling getSession API...');
       final user = await _repository.getSession();
+      print('[AuthNotifier] checkSession: got user ${user.firstName} ${user.lastName}, status=${user.status}');
 
       if (_authService.canAccessApp(user)) {
+        print('[AuthNotifier] checkSession: user can access app, setting authenticated');
         state = AuthAuthenticated(user: user);
       } else {
+        print('[AuthNotifier] checkSession: user cannot access app (status=${user.status}), setting unauthenticated');
         state = const AuthUnauthenticated();
       }
     } on DioException catch (e) {
+      print('[AuthNotifier] checkSession: DioException ${e.response?.statusCode} - ${e.message}');
       // Only treat 401 as definitely unauthenticated
       if (e.response?.statusCode == 401) {
+        print('[AuthNotifier] checkSession: 401 - clearing tokens');
         await _repository.clearTokens();
         state = const AuthUnauthenticated();
       } else {
         // Network errors - can't verify session
         // Force login for safety (can't access app without network anyway)
+        print('[AuthNotifier] checkSession: network error, setting unauthenticated');
         state = const AuthUnauthenticated();
       }
     } catch (e) {
+      print('[AuthNotifier] checkSession: unexpected error $e');
       state = const AuthUnauthenticated();
     }
   }

@@ -211,6 +211,7 @@ class DioClient {
 
   Future<bool> hasValidToken() async {
     final token = await _secureStorage.read(key: accessTokenKey);
+    print('[DioClient] hasValidToken: token=${token != null ? 'present (${token.length} chars)' : 'NULL'}');
     return token != null;
   }
 
