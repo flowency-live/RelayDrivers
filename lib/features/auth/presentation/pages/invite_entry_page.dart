@@ -162,9 +162,9 @@ class _InviteEntryPageState extends ConsumerState<InviteEntryPage> {
     return switch (state) {
       InviteAuthInitial() => _buildCodeEntry(theme),
       InviteAuthVerifying() => _buildLoading('Verifying invite code...'),
-      InviteAuthVerified(:final firstName, :final lastName, :final maskedPhone) =>
-        _buildVerified(theme, firstName, lastName, maskedPhone),
-      InviteAuthOtpSent(:final firstName) => _buildOtpEntry(theme, firstName),
+      InviteAuthVerified(:final firstName, :final lastName, :final maskedPhone, :final companyName) =>
+        _buildVerified(theme, firstName, lastName, maskedPhone, companyName),
+      InviteAuthOtpSent(:final firstName, :final companyName) => _buildOtpEntry(theme, firstName, companyName),
       InviteAuthClaiming() => _buildLoading('Verifying...'),
       InviteAuthSuccess() => _buildLoading('Welcome! Setting up...'),
       InviteAuthError(:final message, :final isExpired, :final isUsed) =>
@@ -243,6 +243,7 @@ class _InviteEntryPageState extends ConsumerState<InviteEntryPage> {
     String firstName,
     String lastName,
     String maskedPhone,
+    String? companyName,
   ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -269,7 +270,9 @@ class _InviteEntryPageState extends ConsumerState<InviteEntryPage> {
               ),
               const SizedBox(height: 8),
               Text(
-                'We found your account. Enter your phone number to continue.',
+                companyName != null
+                    ? 'You\'ve been invited to drive with $companyName.'
+                    : 'We found your account. Enter your phone number to continue.',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -332,7 +335,7 @@ class _InviteEntryPageState extends ConsumerState<InviteEntryPage> {
     );
   }
 
-  Widget _buildOtpEntry(ThemeData theme, String firstName) {
+  Widget _buildOtpEntry(ThemeData theme, String firstName, String? companyName) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -349,6 +352,17 @@ class _InviteEntryPageState extends ConsumerState<InviteEntryPage> {
           ),
           textAlign: TextAlign.center,
         ),
+        if (companyName != null) ...[
+          const SizedBox(height: 4),
+          Text(
+            'Joining $companyName',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.primary,
+              fontWeight: FontWeight.w500,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
         const SizedBox(height: 32),
 
         // OTP input

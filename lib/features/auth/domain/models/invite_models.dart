@@ -6,12 +6,14 @@ class InviteVerifyResponse {
   final String lastName;
   final String maskedPhone;
   final String tenantId;
+  final String? companyName;
 
   const InviteVerifyResponse({
     required this.firstName,
     required this.lastName,
     required this.maskedPhone,
     required this.tenantId,
+    this.companyName,
   });
 
   factory InviteVerifyResponse.fromJson(Map<String, dynamic> json) {
@@ -21,6 +23,7 @@ class InviteVerifyResponse {
       lastName: driver['lastName'] as String? ?? '',
       maskedPhone: driver['maskedPhone'] as String? ?? '***',
       tenantId: json['tenantId'] as String? ?? '',
+      companyName: json['companyName'] as String?,
     );
   }
 
@@ -101,6 +104,7 @@ class InviteAuthVerified extends InviteAuthState {
   final String lastName;
   final String maskedPhone;
   final String tenantId;
+  final String? companyName;
 
   const InviteAuthVerified({
     required this.code,
@@ -108,6 +112,7 @@ class InviteAuthVerified extends InviteAuthState {
     required this.lastName,
     required this.maskedPhone,
     required this.tenantId,
+    this.companyName,
   });
 
   String get fullName => '$firstName $lastName';
@@ -119,6 +124,7 @@ class InviteAuthOtpSent extends InviteAuthState {
   final String phone;
   final String firstName;
   final String tenantId;
+  final String? companyName;
   final DateTime sentAt;
 
   const InviteAuthOtpSent({
@@ -126,6 +132,7 @@ class InviteAuthOtpSent extends InviteAuthState {
     required this.phone,
     required this.firstName,
     required this.tenantId,
+    this.companyName,
     required this.sentAt,
   });
 

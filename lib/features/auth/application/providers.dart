@@ -708,6 +708,7 @@ class InviteAuthNotifier extends StateNotifier<InviteAuthState> {
         lastName: response.lastName,
         maskedPhone: response.maskedPhone,
         tenantId: response.tenantId,
+        companyName: response.companyName,
       );
     } catch (e, stackTrace) {
       print('[InviteAuth] ERROR: $e');
@@ -747,6 +748,7 @@ class InviteAuthNotifier extends StateNotifier<InviteAuthState> {
         phone: normalizedPhone,
         firstName: currentState.firstName,
         tenantId: currentState.tenantId,
+        companyName: currentState.companyName,
         sentAt: DateTime.now(),
       );
     } catch (e) {
@@ -773,6 +775,7 @@ class InviteAuthNotifier extends StateNotifier<InviteAuthState> {
         phone: currentState.phone,
         firstName: currentState.firstName,
         tenantId: currentState.tenantId,
+        companyName: currentState.companyName,
         sentAt: DateTime.now(),
       );
     } catch (e) {
