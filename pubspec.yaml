@@ -2,7 +2,7 @@ name: relay_drivers
 description: "Relay Drivers - Driver onboarding and job management for private hire operators"
 publish_to: 'none'
 
-version: 1.0.8+9
+version: 1.0.9+10
 
 environment:
   sdk: ^3.11.1

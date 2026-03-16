@@ -12,6 +12,12 @@ class DioClient {
   final FlutterSecureStorage _secureStorage;
   AuthInvalidatedCallback? _onAuthInvalidated;
 
+  /// Timestamp of last token save - used to prevent 401 invalidation race condition.
+  /// On web platform, FlutterSecureStorage writes are async and may not be
+  /// immediately readable. We ignore 401s during the grace period after login.
+  DateTime? _lastTokenSaveTime;
+  static const Duration _tokenSaveGracePeriod = Duration(seconds: 3);
+
   static const String accessTokenKey = 'access_token';
   static const String refreshTokenKey = 'refresh_token';
 
@@ -68,6 +74,28 @@ class DioClient {
     ErrorInterceptorHandler handler,
   ) async {
     if (error.response?.statusCode == 401) {
+      // Check if we're within the grace period after a token save.
+      // On web, secure storage writes are async and may not be immediately readable.
+      // This prevents logout loop when navigating to home immediately after login.
+      if (_lastTokenSaveTime != null) {
+        final timeSinceSave = DateTime.now().difference(_lastTokenSaveTime!);
+        if (timeSinceSave < _tokenSaveGracePeriod) {
+          // Within grace period - retry the request instead of invalidating
+          // This handles the race condition where API calls happen before
+          // the token write is fully propagated on web platform
+          try {
+            final token = await _secureStorage.read(key: accessTokenKey);
+            if (token != null) {
+              // Token exists, retry the request
+              final retryResponse = await _retry(error.requestOptions);
+              return handler.resolve(retryResponse);
+            }
+          } catch (e) {
+            // Retry failed, continue with normal 401 handling
+          }
+        }
+      }
+
       try {
         final refreshToken = await _secureStorage.read(key: refreshTokenKey);
         if (refreshToken != null) {
@@ -136,6 +164,8 @@ class DioClient {
     required String accessToken,
     String? refreshToken,
   }) async {
+    // Record the save time for grace period handling
+    _lastTokenSaveTime = DateTime.now();
     await _secureStorage.write(key: accessTokenKey, value: accessToken);
     if (refreshToken != null) {
       await _secureStorage.write(key: refreshTokenKey, value: refreshToken);
@@ -143,6 +173,7 @@ class DioClient {
   }
 
   Future<void> clearTokens() async {
+    _lastTokenSaveTime = null; // Clear grace period on logout
     await _secureStorage.delete(key: accessTokenKey);
     await _secureStorage.delete(key: refreshTokenKey);
   }
