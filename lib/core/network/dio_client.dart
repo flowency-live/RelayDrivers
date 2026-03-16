@@ -18,6 +18,9 @@ class DioClient {
   DateTime? _lastTokenSaveTime;
   static const Duration _tokenSaveGracePeriod = Duration(seconds: 3);
 
+  /// Track requests currently being retried to prevent infinite retry loops
+  final Set<String> _retriedRequests = {};
+
   static const String accessTokenKey = 'access_token';
   static const String refreshTokenKey = 'refresh_token';
 
@@ -74,10 +77,15 @@ class DioClient {
     ErrorInterceptorHandler handler,
   ) async {
     if (error.response?.statusCode == 401) {
+      // Generate unique key for this request to track retries
+      final requestKey =
+          '${error.requestOptions.method}:${error.requestOptions.path}';
+
       // Check if we're within the grace period after a token save.
       // On web, secure storage writes are async and may not be immediately readable.
       // This prevents logout loop when navigating to home immediately after login.
-      if (_lastTokenSaveTime != null) {
+      if (_lastTokenSaveTime != null &&
+          !_retriedRequests.contains(requestKey)) {
         final timeSinceSave = DateTime.now().difference(_lastTokenSaveTime!);
         if (timeSinceSave < _tokenSaveGracePeriod) {
           // Within grace period - retry the request instead of invalidating
@@ -86,12 +94,16 @@ class DioClient {
           try {
             final token = await _secureStorage.read(key: accessTokenKey);
             if (token != null) {
+              // Mark as retried to prevent infinite loop
+              _retriedRequests.add(requestKey);
               // Token exists, retry the request
               final retryResponse = await _retry(error.requestOptions);
+              _retriedRequests.remove(requestKey);
               return handler.resolve(retryResponse);
             }
           } catch (e) {
-            // Retry failed, continue with normal 401 handling
+            // Retry failed, clean up and continue with normal 401 handling
+            _retriedRequests.remove(requestKey);
           }
         }
       }
@@ -166,6 +178,8 @@ class DioClient {
   }) async {
     // Record the save time for grace period handling
     _lastTokenSaveTime = DateTime.now();
+    // Clear retry tracking for new session
+    _retriedRequests.clear();
     await _secureStorage.write(key: accessTokenKey, value: accessToken);
     if (refreshToken != null) {
       await _secureStorage.write(key: refreshTokenKey, value: refreshToken);
@@ -174,6 +188,7 @@ class DioClient {
 
   Future<void> clearTokens() async {
     _lastTokenSaveTime = null; // Clear grace period on logout
+    _retriedRequests.clear(); // Clear retry tracking
     await _secureStorage.delete(key: accessTokenKey);
     await _secureStorage.delete(key: refreshTokenKey);
   }
