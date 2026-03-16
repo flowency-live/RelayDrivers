@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/auth/application/providers.dart';
-import '../../features/auth/domain/models/driver_user.dart';
-import '../../features/onboarding/application/onboarding_providers.dart';
+// REMOVED: driver_user.dart - no longer needed without onboarding logic
+// REMOVED: onboarding_providers.dart - async data doesn't belong in router
 import '../../features/auth/presentation/pages/biometric_unlock_page.dart';
 import '../../features/auth/presentation/pages/invite_entry_page.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
@@ -47,15 +47,21 @@ class AppRoutes {
 }
 
 /// App router provider
+///
+/// IMPORTANT: Router redirect logic ONLY uses synchronous state.
+/// Async data loading (profile, vehicles, documents) belongs in pages, not router.
+/// This prevents race conditions where router blocks waiting for API calls.
 final appRouterProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateProvider);
-  // Watch onboarding completion to allow dashboard access when complete
-  final isOnboardingComplete = ref.watch(isOnboardingCompleteProvider);
+  // REMOVED: isOnboardingCompleteProvider - it depends on 4 async API calls
+  // that haven't been made yet when user logs in, causing router to hang.
+  // Onboarding UI is handled by home page, not router redirects.
 
   return GoRouter(
     // DO NOT set initialLocation - let GoRouter use the browser URL on web
     debugLogDiagnostics: true,
     redirect: (context, state) {
+      // Extract auth state synchronously (no async providers!)
       final isAuthenticated = authState.maybeWhen(
         authenticated: (_) => true,
         orElse: () => false,
@@ -64,12 +70,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         loading: () => true,
         initial: () => true,
         orElse: () => false,
-      );
-
-      // Get user status for onboarding check
-      final userStatus = authState.maybeWhen(
-        authenticated: (user) => user.status,
-        orElse: () => null,
       );
 
       // Check current location and query params
@@ -84,7 +84,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final isRegisterRoute = currentPath == AppRoutes.register;
       final isSplashRoute = currentPath == AppRoutes.splash;
       final isMagicLinkRoute = currentPath.startsWith('/auth/verify');
-      final isOnboardingRoute = currentPath == AppRoutes.onboarding;
       final isAuthRoute = isInviteRoute || isLoginRoute || isPhoneLoginRoute ||
                           isBiometricRoute || isRegisterRoute || isMagicLinkRoute;
 
@@ -108,60 +107,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         return AppRoutes.inviteEntry;
       }
 
-      // Authenticated - check onboarding status
-      // v4.0: Check user.isOnboarding (checks operators array first, legacy fallback)
-      final user = authState.maybeWhen(
-        authenticated: (u) => u,
-        orElse: () => null,
-      );
-
-      // Determine if user needs onboarding
-      // Priority: check if ANY operator is in 'onboarding' state, then legacy status
-      final isOnboardingStatus = user?.isOnboarding ??
-          userStatus == DriverStatus.onboarding;
-
-      final isOnboardingSubPage = currentPath == AppRoutes.profile ||
-          currentPath == AppRoutes.vehicles ||
-          currentPath == AppRoutes.documents ||
-          currentPath == AppRoutes.faceRegistration;
-      final isHomeRoute = currentPath == AppRoutes.home;
-      final isMyOperatorsRoute = currentPath == AppRoutes.myOperators;
-
-      // If onboarding is COMPLETE locally, ALWAYS allow access to home
-      // This handles:
-      // 1. Backend hasn't updated status yet
-      // 2. Existing driver joining new operator (data already exists)
-      if (isOnboardingComplete && (isHomeRoute || isMyOperatorsRoute)) {
-        return null; // Allow access to home/operators
-      }
-
-      // If onboarding status but onboarding is COMPLETE locally, skip to home
-      if (isOnboardingStatus && isOnboardingComplete) {
-        if (isAuthRoute || isSplashRoute || isOnboardingRoute) {
-          return AppRoutes.home;
-        }
-        return null; // Allow navigation to wherever they want
-      }
-
-      // If onboarding status and not complete, allow navigation to home and sub-pages
-      // The home page shows 3 tiles (Profile, Vehicles, Documents) with completion indicators
-      // Users can navigate from home into each section to complete their onboarding
-      if (isOnboardingStatus && !isOnboardingComplete) {
-        // Allow home, onboarding sub-pages, and the wizard itself
-        if (isHomeRoute || isOnboardingSubPage || isOnboardingRoute) {
-          return null;
-        }
-        // Redirect auth/splash pages to home (not wizard)
-        if (isAuthRoute || isSplashRoute) {
-          return AppRoutes.home;
-        }
-      }
-
-      // If authenticated and on auth/splash pages, redirect to home
+      // AUTHENTICATED - simple logic:
+      // - If on auth/splash page, go to home
+      // - Otherwise, allow navigation (home page handles onboarding UI)
       if (isAuthRoute || isSplashRoute) {
         return AppRoutes.home;
       }
 
+      // Allow all navigation for authenticated users
+      // Home page will show onboarding tiles if onboarding is incomplete
       return null;
     },
     routes: [

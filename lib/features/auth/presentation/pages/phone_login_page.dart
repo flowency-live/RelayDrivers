@@ -84,57 +84,62 @@ class _PhoneLoginPageState extends ConsumerState<PhoneLoginPage> {
   }
 
   Future<void> _offerBiometricSetup() async {
-    // Check if biometrics are available
-    final biometricService = ref.read(biometricServiceProvider);
-    final isSupported = await biometricService.isDeviceSupported();
-    final canCheck = await biometricService.canCheckBiometrics();
-    final isAlreadyEnabled = await biometricService.isBiometricEnabled();
+    try {
+      // Check if biometrics are available
+      final biometricService = ref.read(biometricServiceProvider);
+      final isSupported = await biometricService.isDeviceSupported();
+      final canCheck = await biometricService.canCheckBiometrics();
+      final isAlreadyEnabled = await biometricService.isBiometricEnabled();
 
-    // If biometrics not available or already enabled, just navigate
-    if (!isSupported || !canCheck || isAlreadyEnabled) {
-      if (mounted) context.go(AppRoutes.home);
-      return;
-    }
-
-    // Get biometric type name
-    final types = await biometricService.getAvailableBiometrics();
-    final typeName = biometricService.getBiometricTypeName(types);
-
-    if (!mounted) return;
-
-    // Show dialog to offer biometric setup
-    final enableBiometric = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: Text('Enable $typeName?'),
-        content: Text(
-          'Would you like to use $typeName to quickly unlock the app in the future?\n\n'
-          'You can change this later in Settings.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Not now'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text('Enable $typeName'),
-          ),
-        ],
-      ),
-    );
-
-    if (enableBiometric == true) {
-      // Get the token and enable biometric
-      final token = await ref.read(dioClientProvider).getAccessToken();
-      if (token != null) {
-        await ref.read(biometricAuthStateProvider.notifier).enableBiometric(token);
+      // If biometrics not available or already enabled, just navigate
+      if (!isSupported || !canCheck || isAlreadyEnabled) {
+        if (mounted) context.go(AppRoutes.home);
+        return;
       }
-    }
 
-    // Navigate to home
-    if (mounted) context.go(AppRoutes.home);
+      // Get biometric type name
+      final types = await biometricService.getAvailableBiometrics();
+      final typeName = biometricService.getBiometricTypeName(types);
+
+      if (!mounted) return;
+
+      // Show dialog to offer biometric setup
+      final enableBiometric = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          title: Text('Enable $typeName?'),
+          content: Text(
+            'Would you like to use $typeName to quickly unlock the app in the future?\n\n'
+            'You can change this later in Settings.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Not now'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: Text('Enable $typeName'),
+            ),
+          ],
+        ),
+      );
+
+      if (enableBiometric == true) {
+        // Get the token and enable biometric
+        final token = await ref.read(dioClientProvider).getAccessToken();
+        if (token != null) {
+          await ref.read(biometricAuthStateProvider.notifier).enableBiometric(token);
+        }
+      }
+
+      // Navigate to home
+      if (mounted) context.go(AppRoutes.home);
+    } catch (e) {
+      // Biometrics not supported on this platform (web/desktop) - just navigate
+      if (mounted) context.go(AppRoutes.home);
+    }
   }
 
   @override
