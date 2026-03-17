@@ -35,11 +35,13 @@ class InviteClaimResponse {
   final DriverUser driver;
   final String tenantId;
   final String token;
+  final String? refreshToken;
 
   const InviteClaimResponse({
     required this.driver,
     required this.tenantId,
     required this.token,
+    this.refreshToken,
   });
 
   factory InviteClaimResponse.fromJson(
@@ -59,6 +61,9 @@ class InviteClaimResponse {
       }
     }
 
+    // Get refresh token from response body
+    final refreshToken = json['refreshToken'] as String?;
+
     // Get driver data and merge top-level operators/activeOperator
     // Backend returns operators at response root, not inside driver object
     final driverData = Map<String, dynamic>.from(
@@ -77,6 +82,7 @@ class InviteClaimResponse {
       driver: DriverUser.fromJson(driverData),
       tenantId: json['activeOperator'] as String? ?? '',
       token: token ?? '',
+      refreshToken: refreshToken,
     );
   }
 }

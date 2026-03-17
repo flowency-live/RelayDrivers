@@ -382,11 +382,11 @@ class PhoneAuthNotifier extends StateNotifier<PhoneAuthState> {
     try {
       final response = await _repository.verifyOtp(phone, otp);
 
-      // If we got a token, save it
+      // If we got a token, save it (along with refresh token for persistence)
       if (response.token != null) {
         await _dioClient.saveTokens(
           accessToken: response.token!,
-          refreshToken: null,
+          refreshToken: response.refreshToken,
         );
       }
 
@@ -857,11 +857,11 @@ class InviteAuthNotifier extends StateNotifier<InviteAuthState> {
         otp,
       );
 
-      // Save the token
+      // Save the token (along with refresh token for persistence)
       if (response.token.isNotEmpty) {
         await _dioClient.saveTokens(
           accessToken: response.token,
-          refreshToken: null,
+          refreshToken: response.refreshToken,
         );
         // Verify token was saved (web platform async storage workaround)
         // Read back to ensure storage has propagated

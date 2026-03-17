@@ -46,11 +46,13 @@ class OtpRequestResponse {
 class OtpVerifyResponse {
   final bool isNewDriver;
   final String? token;
+  final String? refreshToken;
   final DriverUser? driver;
 
   const OtpVerifyResponse({
     required this.isNewDriver,
     this.token,
+    this.refreshToken,
     this.driver,
   });
 
@@ -69,6 +71,9 @@ class OtpVerifyResponse {
         token = match?.group(1);
       }
     }
+
+    // Get refresh token from response body
+    final refreshToken = json['refreshToken'] as String?;
 
     // Parse driver data if present, merging top-level operators/activeOperator
     DriverUser? driver;
@@ -91,6 +96,7 @@ class OtpVerifyResponse {
     return OtpVerifyResponse(
       isNewDriver: json['needsOnboarding'] as bool? ?? false,
       token: token,
+      refreshToken: refreshToken,
       driver: driver,
     );
   }

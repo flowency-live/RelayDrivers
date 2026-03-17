@@ -139,25 +139,49 @@ class DioClient {
 
   Future<bool> _refreshToken(String refreshToken) async {
     try {
-      final response = await Dio().post(
-        '${ApiConfig.baseUrl}${ApiConfig.authRefresh}',
+      // Create temporary Dio without interceptors for refresh request
+      final refreshDio = Dio(BaseOptions(
+        baseUrl: ApiConfig.baseUrl,
+        connectTimeout: const Duration(seconds: 30),
+        receiveTimeout: const Duration(seconds: 30),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      ));
+
+      // Add X-Tenant-Id for dev/test mode (required by backend for tenant resolution)
+      final tenantId = currentEnvironment.tenantId;
+      if (tenantId != null) {
+        refreshDio.options.headers['X-Tenant-Id'] = tenantId;
+      }
+
+      print('[DioClient] Attempting token refresh...');
+      final response = await refreshDio.post(
+        ApiConfig.authRefresh,
         data: {'refreshToken': refreshToken},
       );
 
-      if (response.statusCode == 200) {
-        final newAccessToken = response.data['accessToken'] as String?;
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        // Backend returns 'token' (not 'accessToken')
+        final newAccessToken = response.data['token'] as String?;
         final newRefreshToken = response.data['refreshToken'] as String?;
 
         if (newAccessToken != null) {
           await _secureStorage.write(key: accessTokenKey, value: newAccessToken);
+          print('[DioClient] Token refresh successful - new access token stored');
         }
         if (newRefreshToken != null) {
           await _secureStorage.write(key: refreshTokenKey, value: newRefreshToken);
+          print('[DioClient] New refresh token stored');
         }
+        // Update the last token save time so grace period tracking works
+        _lastTokenSaveTime = DateTime.now();
         return true;
       }
+      print('[DioClient] Token refresh failed: status=${response.statusCode}, success=${response.data['success']}');
     } catch (e) {
-      // Refresh failed
+      print('[DioClient] Token refresh error: $e');
     }
     return false;
   }

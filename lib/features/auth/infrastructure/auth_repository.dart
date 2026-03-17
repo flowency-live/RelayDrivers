@@ -36,8 +36,8 @@ class AuthRepository {
     Map<String, dynamic> data,
     Map<String, dynamic> headers,
   ) {
-    // Try to get token from response body first
-    String? token = data['accessToken'] as String?;
+    // Try to get token from response body first (backend returns 'token', not 'accessToken')
+    String? token = data['token'] as String? ?? data['accessToken'] as String?;
 
     // If not in body, extract from Set-Cookie header
     if (token == null || token.isEmpty) {
