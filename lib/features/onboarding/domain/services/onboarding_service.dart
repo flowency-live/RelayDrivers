@@ -196,7 +196,7 @@ class OnboardingService {
     ));
 
     // Step 2: Upload PHV Driver Licence
-    final hasDriverLicense = documents.any(
+    final hasDriverLicence = documents.any(
       (d) => d.documentType == DocumentType.phvDriverLicence,
     );
     steps.add(OnboardingStep(
@@ -204,7 +204,7 @@ class OnboardingService {
       phase: 1,
       title: 'PHV Driver Licence',
       description: 'Upload your private hire driver licence',
-      status: hasDriverLicense
+      status: hasDriverLicence
           ? OnboardingStepStatus.complete
           : OnboardingStepStatus.incomplete,
       route: '/documents',
@@ -234,7 +234,7 @@ class OnboardingService {
     ));
 
     // Step 4: Upload PHV Vehicle Licence
-    final hasVehicleLicense = documents.any(
+    final hasVehicleLicence = documents.any(
       (d) => d.documentType == DocumentType.phvVehicleLicence,
     );
     steps.add(OnboardingStep(
@@ -242,7 +242,7 @@ class OnboardingService {
       phase: 2,
       title: 'PHV Vehicle Licence',
       description: 'Upload your vehicle plate/licence',
-      status: hasVehicleLicense
+      status: hasVehicleLicence
           ? OnboardingStepStatus.complete
           : OnboardingStepStatus.incomplete,
       route: '/documents',
