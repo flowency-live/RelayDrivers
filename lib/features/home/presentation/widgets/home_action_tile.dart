@@ -99,18 +99,18 @@ class HomeActionTile extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.all(DesignSpacing.lg),
             decoration: BoxDecoration(
-              // Semi-transparent white with subtle gradient
+              // More translucent to show city background through
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  Colors.white.withOpacity(0.85),
-                  Colors.white.withOpacity(0.75),
+                  Colors.white.withOpacity(0.55),
+                  Colors.white.withOpacity(0.45),
                 ],
               ),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: Colors.white.withOpacity(0.6),
+                color: Colors.white.withOpacity(0.4),
                 width: 1,
               ),
               boxShadow: [
@@ -352,23 +352,23 @@ class SimpleActionTile extends StatelessWidget {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  Colors.white.withOpacity(0.85),
-                  Colors.white.withOpacity(0.75),
+                  Colors.white.withOpacity(0.55),
+                  Colors.white.withOpacity(0.45),
                 ],
               ),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: Colors.white.withOpacity(0.6),
+                color: Colors.white.withOpacity(0.4),
                 width: 1,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.06),
+                  color: Colors.black.withOpacity(0.08),
                   blurRadius: 16,
                   offset: const Offset(0, 4),
                 ),
                 BoxShadow(
-                  color: accentColor.withOpacity(0.05),
+                  color: accentColor.withOpacity(0.08),
                   blurRadius: 20,
                   offset: const Offset(0, 2),
                 ),

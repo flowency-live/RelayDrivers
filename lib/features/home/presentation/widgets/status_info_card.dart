@@ -104,13 +104,13 @@ class StatusInfoCard extends StatelessWidget {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                Colors.white.withOpacity(0.88),
-                Colors.white.withOpacity(0.78),
+                Colors.white.withOpacity(0.55),
+                Colors.white.withOpacity(0.45),
               ],
             ),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: Colors.white.withOpacity(0.6),
+              color: Colors.white.withOpacity(0.4),
               width: 1,
             ),
             boxShadow: [

@@ -68,7 +68,7 @@ class PremiumBackground extends StatelessWidget {
   /// Content to display over background
   final Widget child;
 
-  /// Overlay opacity (0.7 - 0.85 for readability)
+  /// Overlay opacity (0.4 - 0.55 for visible background)
   final double overlayOpacity;
 
   /// Whether to use daily rotation
@@ -83,7 +83,7 @@ class PremiumBackground extends StatelessWidget {
   /// Whether to apply blur to the image
   final bool applyBlur;
 
-  /// Blur intensity
+  /// Blur intensity (lower = more visible city)
   final double blurSigma;
 
   /// Whether to show gradient overlay
@@ -92,12 +92,12 @@ class PremiumBackground extends StatelessWidget {
   const PremiumBackground({
     super.key,
     required this.child,
-    this.overlayOpacity = 0.75,
+    this.overlayOpacity = 0.45,
     this.rotateDailyBackground = true,
     this.backgroundIndex,
     this.customBackground,
     this.applyBlur = true,
-    this.blurSigma = 4.0,
+    this.blurSigma = 3.0,
     this.showGradient = true,
   });
 
@@ -126,17 +126,17 @@ class PremiumBackground extends StatelessWidget {
           // Layer 1: Subtle city image (very light)
           _buildLightBackgroundImage(),
 
-          // Layer 2: Light overlay with gradient for elegance
+          // Layer 2: Light overlay - subtle so city shows through
           Positioned.fill(
             child: Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
                   colors: [
-                    DesignColors.lightBackground.withOpacity(0.92),
-                    DesignColors.lightBackground.withOpacity(0.95),
-                    DesignColors.lightBackground.withOpacity(0.98),
+                    DesignColors.lightBackground.withOpacity(0.45),
+                    DesignColors.lightBackground.withOpacity(0.50),
+                    DesignColors.lightBackground.withOpacity(0.55),
                   ],
                   stops: const [0.0, 0.5, 1.0],
                 ),
@@ -207,19 +207,19 @@ class PremiumBackground extends StatelessWidget {
       fit: BoxFit.cover,
       width: double.infinity,
       height: double.infinity,
-      // Heavily desaturated for light mode
+      // Slightly desaturated but keep warmth visible
       colorBlendMode: BlendMode.saturation,
-      color: Colors.grey.withOpacity(0.2),
+      color: Colors.grey.withOpacity(0.5),
       errorBuilder: (context, error, stackTrace) {
         return Container(color: DesignColors.lightBackground);
       },
     );
 
-    // Apply stronger blur for light mode (subtle effect)
+    // Gentle blur to maintain city visibility
     image = ImageFiltered(
       imageFilter: ImageFilter.blur(
-        sigmaX: 12.0,
-        sigmaY: 12.0,
+        sigmaX: 6.0,
+        sigmaY: 6.0,
         tileMode: TileMode.clamp,
       ),
       child: image,
@@ -337,7 +337,7 @@ class ModalBackground extends StatelessWidget {
 class PremiumAuthBackground extends StatelessWidget {
   final Widget child;
 
-  /// Overlay opacity (0.6 - 0.75 for auth screens)
+  /// Overlay opacity (0.4 - 0.55 for visible background on auth screens)
   final double overlayOpacity;
 
   /// Whether to apply stronger blur
@@ -346,7 +346,7 @@ class PremiumAuthBackground extends StatelessWidget {
   const PremiumAuthBackground({
     super.key,
     required this.child,
-    this.overlayOpacity = 0.65,
+    this.overlayOpacity = 0.40,
     this.applyBlur = true,
   });
 
@@ -359,7 +359,7 @@ class PremiumAuthBackground extends StatelessWidget {
         // Layer 1: City background image
         _buildBackgroundImage(),
 
-        // Layer 2: Dark overlay for readability
+        // Layer 2: Subtle dark overlay - city visible through
         Positioned.fill(
           child: Container(
             decoration: BoxDecoration(
@@ -368,8 +368,8 @@ class PremiumAuthBackground extends StatelessWidget {
                 end: Alignment.bottomCenter,
                 colors: [
                   DesignColors.background.withOpacity(overlayOpacity),
+                  DesignColors.background.withOpacity(overlayOpacity + 0.10),
                   DesignColors.background.withOpacity(overlayOpacity + 0.15),
-                  DesignColors.background.withOpacity(overlayOpacity + 0.25),
                 ],
                 stops: const [0.0, 0.5, 1.0],
               ),
@@ -417,8 +417,8 @@ class PremiumAuthBackground extends StatelessWidget {
     if (applyBlur) {
       image = ImageFiltered(
         imageFilter: ImageFilter.blur(
-          sigmaX: 6.0,
-          sigmaY: 6.0,
+          sigmaX: 4.0,
+          sigmaY: 4.0,
           tileMode: TileMode.clamp,
         ),
         child: image,

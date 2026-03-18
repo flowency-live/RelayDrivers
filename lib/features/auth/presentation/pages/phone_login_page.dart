@@ -150,7 +150,7 @@ class _PhoneLoginPageState extends ConsumerState<PhoneLoginPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SizedBox(height: DesignSpacing.huge),
+                const SizedBox(height: DesignSpacing.lg),
 
                 // Logo with purple glow
                 Center(
