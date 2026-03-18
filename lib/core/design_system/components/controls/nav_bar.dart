@@ -1,17 +1,18 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../tokens/colors.dart';
 import '../../tokens/typography.dart';
 import '../../tokens/spacing.dart';
-import '../../tokens/radii.dart';
 
-/// Premium bottom navigation bar with 5 tabs.
+/// Premium floating pill navigation bar with glass morphism.
 ///
-/// Matches mockup exactly: Home, Bookings, Earnings, Calendar, Profile
-/// Features:
-/// - Full width (no side margins)
-/// - Subtle top border
-/// - Cyan accent for active tab
+/// Design specs (from mockup):
+/// - Height: 72px
+/// - Radius: 28px (pill shape)
+/// - Background: 65% dark surface with 18px blur
+/// - Deep shadow for elevation
+/// - Active icon has brand purple glow
 /// - Haptic feedback on selection
 class PremiumNavBar extends StatelessWidget {
   final int currentIndex;
@@ -57,34 +58,107 @@ class PremiumNavBar extends StatelessWidget {
     final brightness = Theme.of(context).brightness;
     final isDark = brightness == Brightness.dark;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? DesignColors.surface : DesignColors.lightSurface,
-        border: Border(
-          top: BorderSide(
-            color: isDark
-                ? DesignColors.glassBorder
-                : DesignColors.lightBorderSubtle,
-            width: 1,
+    if (!isDark) {
+      // Light mode: simpler elevated bar
+      return _buildLightModeNav(context);
+    }
+
+    // Dark mode: Premium floating pill with glass morphism
+    return SafeArea(
+      top: false,
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        child: Container(
+          // Deep shadow for elevation - creates floating effect
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x80000000), // 50% black
+                blurRadius: 40,
+                offset: Offset(0, 10),
+                spreadRadius: -5,
+              ),
+              // Subtle inner glow at top
+              BoxShadow(
+                color: Color(0x0AFFFFFF), // 4% white
+                blurRadius: 1,
+                offset: Offset(0, -1),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(28),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+              child: Container(
+                height: 72,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                decoration: BoxDecoration(
+                  // 65% dark surface - lets background blur show
+                  color: const Color(0xA6141E32), // rgba(20,30,50,0.65)
+                  borderRadius: BorderRadius.circular(28),
+                  border: Border.all(
+                    color: const Color(0x14FFFFFF), // 8% white border
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: List.generate(_items.length, (index) {
+                    final item = _items[index];
+                    final isActive = index == currentIndex;
+
+                    return _FloatingNavItem(
+                      icon: isActive ? item.activeIcon : item.icon,
+                      label: item.label,
+                      isActive: isActive,
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        onTap(index);
+                      },
+                    );
+                  }),
+                ),
+              ),
+            ),
           ),
         ),
       ),
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
+    );
+  }
+
+  Widget _buildLightModeNav(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        decoration: BoxDecoration(
+          color: DesignColors.lightSurface,
+          borderRadius: BorderRadius.circular(28),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x1A000000),
+              blurRadius: 20,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Container(
+          height: 72,
+          padding: const EdgeInsets.symmetric(horizontal: 8),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: List.generate(_items.length, (index) {
               final item = _items[index];
               final isActive = index == currentIndex;
 
-              return _NavItem(
+              return _FloatingNavItem(
                 icon: isActive ? item.activeIcon : item.icon,
                 label: item.label,
                 isActive: isActive,
+                isLightMode: true,
                 onTap: () {
-                  // Haptic feedback
                   HapticFeedback.selectionClick();
                   onTap(index);
                 },
@@ -109,27 +183,27 @@ class _NavItemData {
   });
 }
 
-class _NavItem extends StatelessWidget {
+class _FloatingNavItem extends StatelessWidget {
   final IconData icon;
   final String label;
   final bool isActive;
+  final bool isLightMode;
   final VoidCallback onTap;
 
-  const _NavItem({
+  const _FloatingNavItem({
     required this.icon,
     required this.label,
     required this.isActive,
+    this.isLightMode = false,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
-    final isDark = brightness == Brightness.dark;
-
-    final activeColor = DesignColors.accent;
-    final inactiveColor =
-        isDark ? DesignColors.textMuted : DesignColors.lightTextMuted;
+    final activeColor = DesignColors.accent; // Purple brand color
+    final inactiveColor = isLightMode
+        ? DesignColors.lightTextMuted
+        : DesignColors.textMuted;
 
     return GestureDetector(
       onTap: onTap,
@@ -138,16 +212,29 @@ class _NavItem extends StatelessWidget {
         width: 64,
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            // Icon with glow effect when active
             AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               curve: Curves.easeOutCubic,
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
+                // Active state: subtle purple glow background
                 color: isActive
-                    ? activeColor.withOpacity(0.12)
+                    ? activeColor.withOpacity(0.15)
                     : Colors.transparent,
-                borderRadius: BorderRadius.circular(DesignRadii.md),
+                borderRadius: BorderRadius.circular(14),
+                // Active glow shadow
+                boxShadow: isActive
+                    ? [
+                        BoxShadow(
+                          color: activeColor.withOpacity(0.4),
+                          blurRadius: 12,
+                          spreadRadius: -2,
+                        ),
+                      ]
+                    : null,
               ),
               child: Icon(
                 icon,
@@ -156,16 +243,20 @@ class _NavItem extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 4),
-            Text(
-              label,
+            // Label with active/inactive styling
+            AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 200),
               style: (isActive
                       ? DesignTypography.navLabelActive
                       : DesignTypography.navLabel)
                   .copyWith(
                 color: isActive ? activeColor : inactiveColor,
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ],
         ),
@@ -174,53 +265,6 @@ class _NavItem extends StatelessWidget {
   }
 }
 
-/// Alternative floating glass morphism nav bar (more premium but less standard).
-/// Use this if the standard nav bar doesn't feel premium enough.
-class FloatingNavBar extends StatelessWidget {
-  final int currentIndex;
-  final ValueChanged<int> onTap;
-
-  const FloatingNavBar({
-    super.key,
-    required this.currentIndex,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(DesignRadii.bottomNav),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-          decoration: BoxDecoration(
-            color: DesignColors.surface.withOpacity(0.85),
-            borderRadius: BorderRadius.circular(DesignRadii.bottomNav),
-            border: Border.all(
-              color: DesignColors.glassBorder,
-              width: 1,
-            ),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: List.generate(PremiumNavBar._items.length, (index) {
-              final item = PremiumNavBar._items[index];
-              final isActive = index == currentIndex;
-
-              return _NavItem(
-                icon: isActive ? item.activeIcon : item.icon,
-                label: item.label,
-                isActive: isActive,
-                onTap: () {
-                  HapticFeedback.selectionClick();
-                  onTap(index);
-                },
-              );
-            }),
-          ),
-        ),
-      ),
-    );
-  }
-}
+/// Legacy alias - use PremiumNavBar instead
+/// Kept for backwards compatibility during transition
+typedef FloatingNavBar = PremiumNavBar;

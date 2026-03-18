@@ -1,16 +1,18 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_theme.dart';
-import '../../../../core/theme/relay_colors.dart';
-import '../../../../core/widgets/progress_ring.dart';
+import '../../../../core/design_system/tokens/colors.dart';
+import '../../../../core/design_system/tokens/typography.dart';
+import '../../../../core/design_system/tokens/spacing.dart';
+import '../../../../core/design_system/foundations/glass.dart';
 import '../../../onboarding/domain/services/onboarding_service.dart';
 
-/// Home page action tile with progress ring
+/// Premium home page action tile with glass morphism
 ///
-/// Displays a section card with:
-/// - Left accent bar in section color
-/// - Icon, title, and description
-/// - Progress ring showing completion percentage
-/// - Missing items hint when incomplete
+/// Design specs:
+/// - Glass card with translucent background (no colored left bar)
+/// - Soft glow icon container instead of corporate colored box
+/// - Operational status language instead of percentages
+/// - Purple brand accent throughout
 class HomeActionTile extends StatelessWidget {
   const HomeActionTile({
     super.key,
@@ -20,136 +22,209 @@ class HomeActionTile extends StatelessWidget {
     required this.onTap,
   });
 
-  /// Section progress data
   final SectionProgress progress;
-
-  /// Accent color for left bar and icon
   final Color accentColor;
-
-  /// Section icon
   final IconData icon;
-
-  /// Tap callback
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Material(
-      color: isDark ? RelayColors.darkSurface1 : RelayColors.lightSurface,
-      borderRadius: BorderRadius.circular(AppTheme.borderRadius),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Container(
-          decoration: BoxDecoration(
-            border: Border(
-              left: BorderSide(
-                color: accentColor,
-                width: AppTheme.accentBarWidth,
+    if (!isDark) {
+      return _buildLightModeTile(context);
+    }
+
+    // Dark mode: Premium glass card with soft glow icon
+    return GestureDetector(
+      onTap: onTap,
+      child: GlassCard(
+        elevated: true,
+        padding: const EdgeInsets.all(DesignSpacing.lg),
+        child: Row(
+          children: [
+            // Soft glow icon container
+            GlowIconContainer(
+              icon: icon,
+              color: accentColor,
+              size: 52,
+              iconSize: 24,
+            ),
+            const SizedBox(width: DesignSpacing.lg),
+
+            // Title, description, and status
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    progress.title,
+                    style: DesignTypography.cardTitle.copyWith(
+                      color: DesignColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    progress.description,
+                    style: DesignTypography.meta.copyWith(
+                      color: DesignColors.textSecondary,
+                    ),
+                  ),
+                  // Operational status instead of percentage
+                  if (!progress.isComplete && progress.remainingItems > 0) ...[
+                    const SizedBox(height: 8),
+                    _buildStatusIndicator(progress),
+                  ],
+                ],
               ),
             ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                // Icon container
-                _IconBadge(
-                  icon: icon,
-                  color: accentColor,
-                  isDark: isDark,
-                ),
-                const SizedBox(width: 16),
 
-                // Title, description, and missing items
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        progress.title,
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        progress.description,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: isDark
-                                  ? RelayColors.darkTextSecondary
-                                  : RelayColors.lightTextSecondary,
-                            ),
-                      ),
-                      // Show missing items hint when incomplete
-                      if (!progress.isComplete &&
-                          progress.remainingItems > 0) ...[
-                        const SizedBox(height: 6),
-                        Text(
-                          '${progress.remainingItems} ${progress.remainingItems == 1 ? 'item' : 'items'} remaining',
-                          style:
-                              Theme.of(context).textTheme.labelSmall?.copyWith(
-                                    color: RelayColors.warning,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
+            const SizedBox(width: DesignSpacing.md),
 
-                // Progress ring
-                AnimatedProgressRing(
-                  progress: progress.percent,
-                  size: 48,
-                  strokeWidth: 4,
-                  progressColor: accentColor,
-                  showPercentage: true,
-                  showCheckWhenComplete: true,
-                ),
-              ],
+            // Status indicator or completion check
+            _buildTrailingIndicator(progress),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLightModeTile(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(DesignSpacing.lg),
+        decoration: BoxDecoration(
+          color: DesignColors.lightSurface,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x0A000000),
+              blurRadius: 8,
+              offset: Offset(0, 2),
             ),
+          ],
+        ),
+        child: Row(
+          children: [
+            // Light mode icon container
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: accentColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(
+                icon,
+                color: accentColor,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: DesignSpacing.lg),
+
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    progress.title,
+                    style: DesignTypography.cardTitle.copyWith(
+                      color: DesignColors.lightTextPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    progress.description,
+                    style: DesignTypography.meta.copyWith(
+                      color: DesignColors.lightTextSecondary,
+                    ),
+                  ),
+                  if (!progress.isComplete && progress.remainingItems > 0) ...[
+                    const SizedBox(height: 8),
+                    _buildStatusIndicator(progress, isLight: true),
+                  ],
+                ],
+              ),
+            ),
+
+            const SizedBox(width: DesignSpacing.md),
+            _buildTrailingIndicator(progress, isLight: true),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Operational status indicator - replaces percentage-based progress
+  Widget _buildStatusIndicator(SectionProgress progress, {bool isLight = false}) {
+    final String statusText;
+    final Color statusColor;
+
+    if (progress.remainingItems == 1) {
+      statusText = '1 item needs attention';
+      statusColor = DesignColors.warning;
+    } else if (progress.remainingItems <= 3) {
+      statusText = '${progress.remainingItems} items need attention';
+      statusColor = DesignColors.warning;
+    } else {
+      statusText = 'Setup required';
+      statusColor = DesignColors.warning;
+    }
+
+    return Row(
+      children: [
+        StatusDot(
+          color: statusColor,
+          size: 6,
+          animated: true,
+        ),
+        const SizedBox(width: 6),
+        Text(
+          statusText,
+          style: DesignTypography.labelSmall.copyWith(
+            color: statusColor,
+            fontWeight: FontWeight.w500,
           ),
         ),
-      ),
+      ],
     );
   }
-}
 
-/// Icon badge with background
-class _IconBadge extends StatelessWidget {
-  const _IconBadge({
-    required this.icon,
-    required this.color,
-    required this.isDark,
-  });
-
-  final IconData icon;
-  final Color color;
-  final bool isDark;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: color.withAlpha(isDark ? 30 : 20),
-        borderRadius: BorderRadius.circular(AppTheme.borderRadius),
-        border: Border.all(
-          color: color.withAlpha(isDark ? 50 : 40),
-          width: 1,
+  /// Trailing indicator - check mark when complete, chevron when not
+  Widget _buildTrailingIndicator(SectionProgress progress, {bool isLight = false}) {
+    if (progress.isComplete) {
+      return Container(
+        width: 32,
+        height: 32,
+        decoration: BoxDecoration(
+          color: DesignColors.success.withOpacity(0.15),
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: DesignColors.success.withOpacity(0.3),
+              blurRadius: 8,
+              spreadRadius: -2,
+            ),
+          ],
         ),
-      ),
-      child: Icon(
-        icon,
-        color: color,
-        size: 24,
-      ),
+        child: const Icon(
+          Icons.check_rounded,
+          color: DesignColors.success,
+          size: 18,
+        ),
+      );
+    }
+
+    return Icon(
+      Icons.chevron_right_rounded,
+      color: isLight ? DesignColors.lightTextMuted : DesignColors.textMuted,
+      size: 24,
     );
   }
 }
 
-/// Simple action tile without progress (for non-onboarding sections)
+/// Simple action tile without progress - premium glass version
 class SimpleActionTile extends StatelessWidget {
   const SimpleActionTile({
     super.key,
@@ -172,65 +247,123 @@ class SimpleActionTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Material(
-      color: isDark ? RelayColors.darkSurface1 : RelayColors.lightSurface,
-      borderRadius: BorderRadius.circular(AppTheme.borderRadius),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Container(
-          decoration: BoxDecoration(
-            border: Border(
-              left: BorderSide(
-                color: accentColor,
-                width: AppTheme.accentBarWidth,
+    if (!isDark) {
+      return _buildLightMode(context);
+    }
+
+    return GestureDetector(
+      onTap: onTap,
+      child: GlassCard(
+        elevated: true,
+        padding: const EdgeInsets.all(DesignSpacing.lg),
+        child: Row(
+          children: [
+            GlowIconContainer(
+              icon: icon,
+              color: accentColor,
+              size: 52,
+              iconSize: 24,
+            ),
+            const SizedBox(width: DesignSpacing.lg),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: DesignTypography.cardTitle.copyWith(
+                      color: DesignColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: DesignTypography.meta.copyWith(
+                      color: DesignColors.textSecondary,
+                    ),
+                  ),
+                ],
               ),
             ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                _IconBadge(
-                  icon: icon,
-                  color: accentColor,
-                  isDark: isDark,
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        subtitle,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: isDark
-                                  ? RelayColors.darkTextSecondary
-                                  : RelayColors.lightTextSecondary,
-                            ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (trailing != null) ...[
-                  const SizedBox(width: 8),
-                  trailing!,
-                ],
-                const SizedBox(width: 8),
-                Icon(
-                  Icons.chevron_right,
-                  color: isDark
-                      ? RelayColors.darkTextMuted
-                      : RelayColors.lightTextMuted,
-                ),
-              ],
+            if (trailing != null) ...[
+              const SizedBox(width: 8),
+              trailing!,
+            ],
+            const SizedBox(width: 4),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: DesignColors.textMuted,
+              size: 24,
             ),
-          ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLightMode(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(DesignSpacing.lg),
+        decoration: BoxDecoration(
+          color: DesignColors.lightSurface,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x0A000000),
+              blurRadius: 8,
+              offset: Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: accentColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(
+                icon,
+                color: accentColor,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: DesignSpacing.lg),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: DesignTypography.cardTitle.copyWith(
+                      color: DesignColors.lightTextPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: DesignTypography.meta.copyWith(
+                      color: DesignColors.lightTextSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (trailing != null) ...[
+              const SizedBox(width: 8),
+              trailing!,
+            ],
+            const SizedBox(width: 4),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: DesignColors.lightTextMuted,
+              size: 24,
+            ),
+          ],
         ),
       ),
     );

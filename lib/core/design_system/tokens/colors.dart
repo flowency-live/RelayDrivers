@@ -1,26 +1,25 @@
 import 'package:flutter/material.dart';
 
-/// Premium chauffeur console color palette.
+/// Premium executive chauffeur color palette.
 ///
-/// Design direction: Executive, calm, less Uber, more private chauffeur.
-/// Background: Deep navy with city blur (dark mode) / clean white (light mode).
-/// Accent: Cyan/teal for active states, route lines, interactive elements.
+/// Brand: Purple/violet spectrum - sophisticated, premium, executive.
+/// NOT cyan/teal. NOT green. NOT startup SaaS colors.
 abstract class DesignColors {
   // ─────────────────────────────────────────────────────────────────────────
-  // DARK MODE - Primary palette (from mockups)
+  // DARK MODE - Primary palette (executive chauffeur aesthetic)
   // ─────────────────────────────────────────────────────────────────────────
 
   /// Deepest background - behind city blur
-  static const Color background = Color(0xFF0A0E1A);
+  static const Color background = Color(0xFF080B14);
 
-  /// Card backgrounds, surfaces
-  static const Color surface = Color(0xFF121829);
+  /// Card backgrounds, surfaces - let background bleed through
+  static const Color surface = Color(0xFF0F1420);
 
   /// Elevated cards, modals
-  static const Color surfaceElevated = Color(0xFF1A2235);
+  static const Color surfaceElevated = Color(0xFF151B2B);
 
   /// Highest elevation (popovers, tooltips)
-  static const Color surfaceHighest = Color(0xFF242D42);
+  static const Color surfaceHighest = Color(0xFF1C2438);
 
   // ─────────────────────────────────────────────────────────────────────────
   // TEXT
@@ -39,31 +38,34 @@ abstract class DesignColors {
   static const Color textDisabled = Color(0xFF4B5563);
 
   // ─────────────────────────────────────────────────────────────────────────
-  // ACCENT - Cyan/Teal (from mockup route lines, active states)
+  // BRAND ACCENT - Purple/Violet (executive, premium)
   // ─────────────────────────────────────────────────────────────────────────
 
-  /// Primary accent - used for nav selection, CTAs, route lines
-  static const Color accent = Color(0xFF00D4AA);
+  /// Primary brand accent - selection, CTAs, active states
+  static const Color accent = Color(0xFF8B5CF6);
 
   /// Lighter accent - hover states
-  static const Color accentLight = Color(0xFF4AEDC4);
+  static const Color accentLight = Color(0xFFA78BFA);
 
   /// Darker accent - pressed states
-  static const Color accentDark = Color(0xFF00A88A);
+  static const Color accentDark = Color(0xFF7C3AED);
 
   /// Accent with glow effect (for decorative shadows)
-  static const Color accentGlow = Color(0x4000D4AA);
+  static const Color accentGlow = Color(0x608B5CF6);
 
   /// Accent muted background (15% opacity)
-  static const Color accentMuted = Color(0x2600D4AA);
+  static const Color accentMuted = Color(0x268B5CF6);
+
+  /// Secondary accent - complementary purple
+  static const Color accentSecondary = Color(0xFFC084FC);
 
   // ─────────────────────────────────────────────────────────────────────────
   // STATUS COLORS
   // ─────────────────────────────────────────────────────────────────────────
 
-  /// Success - On Duty green, confirmations
-  static const Color success = Color(0xFF22C55E);
-  static const Color successMuted = Color(0x2622C55E);
+  /// Success - confirmations, completed
+  static const Color success = Color(0xFF10B981);
+  static const Color successMuted = Color(0x2610B981);
 
   /// Warning - Amber for alerts, pending states
   static const Color warning = Color(0xFFF59E0B);
@@ -78,43 +80,46 @@ abstract class DesignColors {
   static const Color infoMuted = Color(0x263B82F6);
 
   // ─────────────────────────────────────────────────────────────────────────
-  // SECTION ACCENTS (from mockup onboarding cards)
+  // SECTION ACCENTS (soft glow style, not corporate bars)
   // ─────────────────────────────────────────────────────────────────────────
 
-  /// Profile section - purple/indigo
-  static const Color profileAccent = Color(0xFF6366F1);
+  /// Profile section - indigo/purple
+  static const Color profileAccent = Color(0xFF8B5CF6);
 
-  /// Vehicles section - green
-  static const Color vehicleAccent = Color(0xFF22C55E);
+  /// Vehicles section - purple tint
+  static const Color vehicleAccent = Color(0xFFA78BFA);
 
-  /// Documents section - amber
-  static const Color documentAccent = Color(0xFFF59E0B);
+  /// Documents section - light purple
+  static const Color documentAccent = Color(0xFFC084FC);
 
   // ─────────────────────────────────────────────────────────────────────────
-  // GLASS MORPHISM
+  // GLASS MORPHISM - Premium translucent cards
   // ─────────────────────────────────────────────────────────────────────────
 
-  /// Glass card background (10% surface)
-  static const Color glassBackground = Color(0x1A1A2235);
+  /// Glass card background - 4% white, let city blur show
+  static const Color glassBackground = Color(0x0AFFFFFF);
 
-  /// Glass border (10% white)
-  static const Color glassBorder = Color(0x1AFFFFFF);
+  /// Glass border - 8% white
+  static const Color glassBorder = Color(0x14FFFFFF);
 
-  /// Glass inner highlight (5% white)
+  /// Glass inner highlight - 5% white (top edge glow)
   static const Color glassHighlight = Color(0x0DFFFFFF);
 
-  /// Glass shadow
-  static const Color glassShadow = Color(0x40000000);
+  /// Glass shadow - deep for depth
+  static const Color glassShadow = Color(0x59000000);
+
+  /// Glass background elevated - 6% white
+  static const Color glassBackgroundElevated = Color(0x0FFFFFFF);
 
   // ─────────────────────────────────────────────────────────────────────────
   // BORDERS
   // ─────────────────────────────────────────────────────────────────────────
 
   /// Subtle border - card edges
-  static const Color borderSubtle = Color(0xFF2D3E54);
+  static const Color borderSubtle = Color(0xFF1E2A3E);
 
   /// Default border - inputs
-  static const Color borderDefault = Color(0xFF3D4E64);
+  static const Color borderDefault = Color(0xFF2D3E54);
 
   /// Focus border - focused inputs
   static const Color borderFocus = accent;
@@ -124,7 +129,7 @@ abstract class DesignColors {
   // ─────────────────────────────────────────────────────────────────────────
 
   /// Light mode background
-  static const Color lightBackground = Color(0xFFF5F7FA);
+  static const Color lightBackground = Color(0xFFF8FAFC);
 
   /// Light mode surface (cards)
   static const Color lightSurface = Color(0xFFFFFFFF);
@@ -133,7 +138,7 @@ abstract class DesignColors {
   static const Color lightSurfaceElevated = Color(0xFFFFFFFF);
 
   /// Light mode primary text
-  static const Color lightTextPrimary = Color(0xFF1A1A2E);
+  static const Color lightTextPrimary = Color(0xFF0F172A);
 
   /// Light mode secondary text
   static const Color lightTextSecondary = Color(0xFF64748B);

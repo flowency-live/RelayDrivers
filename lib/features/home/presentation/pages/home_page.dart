@@ -137,15 +137,17 @@ class _HomePageState extends ConsumerState<HomePage> {
                   // Operator Selector (only shows if driver has multiple operators)
                   const OperatorSelector(),
 
-                  // Greeting header
+                  // Hero greeting header with operational status
                   GreetingHeader(
                     firstName: user.firstName,
                     operatorName: profile?.tenant?.companyName,
                     onNotificationsTap: () =>
                         context.push(AppRoutes.notifications),
+                    isOnDuty: _isOnDuty,
+                    showDutyStatus: isActiveDriver,
                   ),
 
-                  const SizedBox(height: DesignSpacing.md),
+                  const SizedBox(height: DesignSpacing.xl),
 
                   // Show different content based on status
                   if (isActiveDriver)
@@ -181,16 +183,18 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   /// Active driver view - duty toggle, current job, schedule, earnings
   Widget _buildActiveDriverView(BuildContext context, bool isDark) {
-    return Column(
-      children: [
-        // Duty toggle
-        DutyToggle(
-          isOnDuty: _isOnDuty,
-          isLoading: _isDutyLoading,
-          onToggle: _toggleDuty,
-        ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: DesignSpacing.lg),
+      child: Column(
+        children: [
+          // Duty toggle
+          DutyToggle(
+            isOnDuty: _isOnDuty,
+            isLoading: _isDutyLoading,
+            onToggle: _toggleDuty,
+          ),
 
-        const SizedBox(height: DesignSpacing.xl),
+          const SizedBox(height: DesignSpacing.xxl),
 
         // Current job or empty state
         // TODO: Wire to actual job data
@@ -234,7 +238,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           onViewAll: () => context.push(AppRoutes.bookings),
         ),
 
-        const SizedBox(height: DesignSpacing.lg),
+        const SizedBox(height: DesignSpacing.xl),
 
         // Earnings today
         // TODO: Wire to actual earnings data
@@ -245,7 +249,8 @@ class _HomePageState extends ConsumerState<HomePage> {
           isTrendPositive: true,
           onTap: () => context.push(AppRoutes.earnings),
         ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -268,14 +273,14 @@ class _HomePageState extends ConsumerState<HomePage> {
             icon: Icons.person_outline,
             onTap: () => context.push(AppRoutes.profile),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: DesignSpacing.lg),
           HomeActionTile(
             progress: onboardingProgress.vehicleProgress,
             accentColor: DesignColors.vehicleAccent,
             icon: Icons.directions_car_outlined,
             onTap: () => context.push(AppRoutes.vehicles),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: DesignSpacing.lg),
           HomeActionTile(
             progress: onboardingProgress.documentProgress,
             accentColor: DesignColors.documentAccent,
@@ -283,7 +288,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             onTap: () => context.push(AppRoutes.documents),
           ),
 
-          const SizedBox(height: 32),
+          const SizedBox(height: DesignSpacing.xxl),
 
           // Status card with tenant contact info
           StatusInfoCard(

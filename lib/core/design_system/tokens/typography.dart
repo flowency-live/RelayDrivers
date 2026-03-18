@@ -217,6 +217,15 @@ abstract class DesignTypography {
   // SPECIAL PURPOSE STYLES
   // ─────────────────────────────────────────────────────────────────────────
 
+  /// Card title - action tile headers (17px per design spec)
+  static const TextStyle cardTitle = TextStyle(
+    fontSize: 17,
+    fontWeight: FontWeight.w600,
+    letterSpacing: -0.2,
+    height: 1.3,
+    color: DesignColors.textPrimary,
+  );
+
   /// Job title - primary destination/location name
   static const TextStyle jobTitle = TextStyle(
     fontSize: 16,
