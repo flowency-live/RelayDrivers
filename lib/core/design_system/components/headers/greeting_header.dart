@@ -85,7 +85,16 @@ class GreetingHeader extends StatelessWidget {
                             style: DesignTypography.greetingLight.copyWith(
                               color: isDark
                                   ? DesignColors.textPrimary
-                                  : DesignColors.lightTextPrimary,
+                                  : Colors.white,
+                              shadows: isDark
+                                  ? null
+                                  : [
+                                      Shadow(
+                                        color: Colors.black.withOpacity(0.5),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
                             ),
                           ),
                           TextSpan(
@@ -93,7 +102,16 @@ class GreetingHeader extends StatelessWidget {
                             style: DesignTypography.greetingName.copyWith(
                               color: isDark
                                   ? DesignColors.textPrimary
-                                  : DesignColors.lightTextPrimary,
+                                  : Colors.white,
+                              shadows: isDark
+                                  ? null
+                                  : [
+                                      Shadow(
+                                        color: Colors.black.withOpacity(0.5),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
                             ),
                           ),
                         ],
@@ -108,7 +126,16 @@ class GreetingHeader extends StatelessWidget {
                         style: DesignTypography.meta.copyWith(
                           color: isDark
                               ? DesignColors.textSecondary
-                              : DesignColors.lightTextSecondary,
+                              : Colors.white.withOpacity(0.9),
+                          shadows: isDark
+                              ? null
+                              : [
+                                  Shadow(
+                                    color: Colors.black.withOpacity(0.5),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 1),
+                                  ),
+                                ],
                         ),
                       ),
                     ],

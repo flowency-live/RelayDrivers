@@ -209,22 +209,33 @@ class HomeActionTile extends StatelessWidget {
       statusColor = DesignColors.warning;
     }
 
-    return Row(
-      children: [
-        StatusDot(
-          color: statusColor,
-          size: 6,
-          animated: true,
-        ),
-        const SizedBox(width: 6),
-        Text(
-          statusText,
-          style: DesignTypography.labelSmall.copyWith(
+    // Wrap in semi-transparent pill for better contrast in light mode
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: isLight
+            ? statusColor.withOpacity(0.15)
+            : statusColor.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          StatusDot(
             color: statusColor,
-            fontWeight: FontWeight.w500,
+            size: 6,
+            animated: true,
           ),
-        ),
-      ],
+          const SizedBox(width: 6),
+          Text(
+            statusText,
+            style: DesignTypography.labelSmall.copyWith(
+              color: isLight ? Colors.black.withOpacity(0.85) : statusColor,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
     );
   }
 

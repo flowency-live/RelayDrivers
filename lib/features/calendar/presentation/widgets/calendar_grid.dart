@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/design_system/tokens/colors.dart';
@@ -24,19 +25,50 @@ class CalendarGrid extends ConsumerWidget {
     final blocks = ref.watch(availabilityBlocksProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Column(
-      children: [
-        // Day of week headers
-        _WeekdayHeaders(isDark: isDark),
-        const SizedBox(height: DesignSpacing.sm),
-        // Calendar days
-        _CalendarDays(
-          month: viewingMonth,
-          workingPattern: workingPattern,
-          blocks: blocks,
-          isDark: isDark,
+    // Wrap in glass card for better visibility against city background
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          padding: const EdgeInsets.all(DesignSpacing.md),
+          decoration: BoxDecoration(
+            color: isDark
+                ? DesignColors.glassBackground
+                : Colors.white.withOpacity(0.7),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isDark
+                  ? DesignColors.glassBorder
+                  : Colors.white.withOpacity(0.5),
+              width: 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: isDark
+                    ? DesignColors.glassShadow
+                    : Colors.black.withOpacity(0.1),
+                blurRadius: 20,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              // Day of week headers
+              _WeekdayHeaders(isDark: isDark),
+              const SizedBox(height: DesignSpacing.sm),
+              // Calendar days
+              _CalendarDays(
+                month: viewingMonth,
+                workingPattern: workingPattern,
+                blocks: blocks,
+                isDark: isDark,
+              ),
+            ],
+          ),
         ),
-      ],
+      ),
     );
   }
 }

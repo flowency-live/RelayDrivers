@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/design_system/tokens/colors.dart';
@@ -16,19 +17,32 @@ class WorkingHoursCard extends ConsumerWidget {
     final workingPattern = ref.watch(workingPatternProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Container(
-      padding: const EdgeInsets.all(DesignSpacing.lg),
-      decoration: BoxDecoration(
-        color: isDark
-            ? DesignColors.surface.withOpacity(0.5)
-            : DesignColors.lightSurface,
-        borderRadius: BorderRadius.circular(DesignRadii.card),
-        border: Border.all(
-          color: isDark
-              ? DesignColors.borderSubtle
-              : DesignColors.lightBorderSubtle,
-        ),
-      ),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(DesignRadii.card),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          padding: const EdgeInsets.all(DesignSpacing.lg),
+          decoration: BoxDecoration(
+            color: isDark
+                ? DesignColors.glassBackground
+                : Colors.white.withOpacity(0.7),
+            borderRadius: BorderRadius.circular(DesignRadii.card),
+            border: Border.all(
+              color: isDark
+                  ? DesignColors.glassBorder
+                  : Colors.white.withOpacity(0.5),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: isDark
+                    ? DesignColors.glassShadow
+                    : Colors.black.withOpacity(0.1),
+                blurRadius: 20,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -89,6 +103,8 @@ class WorkingHoursCard extends ConsumerWidget {
             isDark: isDark,
           ),
         ],
+      ),
+        ),
       ),
     );
   }

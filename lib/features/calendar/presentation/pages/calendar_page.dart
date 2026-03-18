@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/design_system/tokens/colors.dart';
@@ -56,7 +57,16 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
           style: DesignTypography.headlineMedium.copyWith(
             color: isDark
                 ? DesignColors.textPrimary
-                : DesignColors.lightTextPrimary,
+                : Colors.white,
+            shadows: isDark
+                ? null
+                : [
+                    Shadow(
+                      color: Colors.black.withOpacity(0.5),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
           ),
         ),
         actions: [
@@ -253,7 +263,15 @@ class _MonthHeader extends StatelessWidget {
             Icons.chevron_left,
             color: isDark
                 ? DesignColors.textSecondary
-                : DesignColors.lightTextSecondary,
+                : Colors.white.withOpacity(0.9),
+            shadows: isDark
+                ? null
+                : [
+                    Shadow(
+                      color: Colors.black.withOpacity(0.4),
+                      blurRadius: 6,
+                    ),
+                  ],
           ),
           onPressed: onPrevious,
           tooltip: 'Previous month',
@@ -264,7 +282,16 @@ class _MonthHeader extends StatelessWidget {
           style: DesignTypography.headlineSmall.copyWith(
             color: isDark
                 ? DesignColors.textPrimary
-                : DesignColors.lightTextPrimary,
+                : Colors.white,
+            shadows: isDark
+                ? null
+                : [
+                    Shadow(
+                      color: Colors.black.withOpacity(0.5),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
           ),
         ),
         const SizedBox(width: DesignSpacing.md),
@@ -273,7 +300,15 @@ class _MonthHeader extends StatelessWidget {
             Icons.chevron_right,
             color: isDark
                 ? DesignColors.textSecondary
-                : DesignColors.lightTextSecondary,
+                : Colors.white.withOpacity(0.9),
+            shadows: isDark
+                ? null
+                : [
+                    Shadow(
+                      color: Colors.black.withOpacity(0.4),
+                      blurRadius: 6,
+                    ),
+                  ],
           ),
           onPressed: onNext,
           tooltip: 'Next month',
@@ -305,7 +340,15 @@ class _SectionHeader extends StatelessWidget {
           style: DesignTypography.sectionHeader.copyWith(
             color: isDark
                 ? DesignColors.textMuted
-                : DesignColors.lightTextMuted,
+                : Colors.white.withOpacity(0.85),
+            shadows: isDark
+                ? null
+                : [
+                    Shadow(
+                      color: Colors.black.withOpacity(0.4),
+                      blurRadius: 4,
+                    ),
+                  ],
           ),
         ),
         if (trailing != null) trailing!,
@@ -322,47 +365,60 @@ class _EmptyBlocksMessage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(DesignSpacing.lg),
-      decoration: BoxDecoration(
-        color: isDark
-            ? DesignColors.surface.withOpacity(0.5)
-            : DesignColors.lightSurface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isDark
-              ? DesignColors.borderSubtle
-              : DesignColors.lightBorderSubtle,
-        ),
-      ),
-      child: Column(
-        children: [
-          Icon(
-            Icons.event_available,
-            size: 32,
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+        child: Container(
+          padding: const EdgeInsets.all(DesignSpacing.lg),
+          decoration: BoxDecoration(
             color: isDark
-                ? DesignColors.textMuted
-                : DesignColors.lightTextMuted,
-          ),
-          const SizedBox(height: DesignSpacing.sm),
-          Text(
-            'No blocked periods',
-            style: DesignTypography.bodyMedium.copyWith(
+                ? DesignColors.surface.withOpacity(0.5)
+                : Colors.white.withOpacity(0.65),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
               color: isDark
-                  ? DesignColors.textSecondary
-                  : DesignColors.lightTextSecondary,
+                  ? DesignColors.borderSubtle
+                  : Colors.white.withOpacity(0.4),
             ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(isDark ? 0.2 : 0.08),
+                blurRadius: 16,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
-          const SizedBox(height: DesignSpacing.xxs),
-          Text(
-            'Tap + to block time off',
-            style: DesignTypography.bodySmall.copyWith(
-              color: isDark
-                  ? DesignColors.textMuted
-                  : DesignColors.lightTextMuted,
-            ),
+          child: Column(
+            children: [
+              Icon(
+                Icons.event_available,
+                size: 32,
+                color: isDark
+                    ? DesignColors.textMuted
+                    : DesignColors.lightTextSecondary,
+              ),
+              const SizedBox(height: DesignSpacing.sm),
+              Text(
+                'No blocked periods',
+                style: DesignTypography.bodyMedium.copyWith(
+                  color: isDark
+                      ? DesignColors.textSecondary
+                      : DesignColors.lightTextPrimary,
+                ),
+              ),
+              const SizedBox(height: DesignSpacing.xxs),
+              Text(
+                'Tap + to block time off',
+                style: DesignTypography.bodySmall.copyWith(
+                  color: isDark
+                      ? DesignColors.textMuted
+                      : DesignColors.lightTextSecondary,
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

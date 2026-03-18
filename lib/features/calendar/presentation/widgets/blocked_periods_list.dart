@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/design_system/tokens/colors.dart';
@@ -143,19 +144,30 @@ class _BlockedPeriodItem extends StatelessWidget {
         onDelete();
         return false; // Dialog handles the actual deletion
       },
-      child: Container(
-        padding: const EdgeInsets.all(DesignSpacing.md),
-        decoration: BoxDecoration(
-          color: isDark
-              ? DesignColors.surface.withOpacity(0.5)
-              : DesignColors.lightSurface,
-          borderRadius: BorderRadius.circular(DesignRadii.card),
-          border: Border.all(
-            color: isDark
-                ? DesignColors.borderSubtle
-                : DesignColors.lightBorderSubtle,
-          ),
-        ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(DesignRadii.card),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+          child: Container(
+            padding: const EdgeInsets.all(DesignSpacing.md),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? DesignColors.glassBackground
+                  : Colors.white.withOpacity(0.65),
+              borderRadius: BorderRadius.circular(DesignRadii.card),
+              border: Border.all(
+                color: isDark
+                    ? DesignColors.glassBorder
+                    : Colors.white.withOpacity(0.4),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(isDark ? 0.2 : 0.08),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
         child: Row(
           children: [
             // Date indicator
@@ -229,6 +241,8 @@ class _BlockedPeriodItem extends StatelessWidget {
                   : DesignColors.lightTextMuted,
             ),
           ],
+        ),
+          ),
         ),
       ),
     );
