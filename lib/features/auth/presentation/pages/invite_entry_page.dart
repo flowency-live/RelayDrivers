@@ -183,7 +183,13 @@ class _InviteEntryPageState extends ConsumerState<InviteEntryPage> {
                   'v$appVersion',
                   textAlign: TextAlign.center,
                   style: DesignTypography.labelSmall.copyWith(
-                    color: DesignColors.textMuted,
+                    color: DesignColors.textPrimary.withOpacity(0.5),
+                    shadows: [
+                      Shadow(
+                        color: Colors.black.withOpacity(0.5),
+                        blurRadius: 4,
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -252,7 +258,13 @@ class _InviteEntryPageState extends ConsumerState<InviteEntryPage> {
         Text(
           'Your operator sent you an invite code via SMS. Enter it below to get started.',
           style: DesignTypography.bodyMedium.copyWith(
-            color: DesignColors.textSecondary,
+            color: DesignColors.textPrimary.withOpacity(0.75),
+            shadows: [
+              Shadow(
+                color: Colors.black.withOpacity(0.5),
+                blurRadius: 4,
+              ),
+            ],
           ),
           textAlign: TextAlign.center,
         ),

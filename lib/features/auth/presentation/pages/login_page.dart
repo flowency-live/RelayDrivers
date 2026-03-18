@@ -120,7 +120,13 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         : 'Sign in to manage your profile and jobs',
                     textAlign: TextAlign.center,
                     style: DesignTypography.meta.copyWith(
-                      color: DesignColors.textSecondary,
+                      color: DesignColors.textPrimary.withOpacity(0.75),
+                      shadows: [
+                        Shadow(
+                          color: Colors.black.withOpacity(0.5),
+                          blurRadius: 4,
+                        ),
+                      ],
                     ),
                   ),
 
@@ -190,7 +196,13 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     'By signing in, you agree to the Terms of Service and Privacy Policy',
                     textAlign: TextAlign.center,
                     style: DesignTypography.labelSmall.copyWith(
-                      color: DesignColors.textMuted,
+                      color: DesignColors.textPrimary.withOpacity(0.5),
+                      shadows: [
+                        Shadow(
+                          color: Colors.black.withOpacity(0.5),
+                          blurRadius: 4,
+                        ),
+                      ],
                     ),
                   ),
 
@@ -201,7 +213,13 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     'v$appVersion',
                     textAlign: TextAlign.center,
                     style: DesignTypography.labelSmall.copyWith(
-                      color: DesignColors.textMuted,
+                      color: DesignColors.textPrimary.withOpacity(0.5),
+                      shadows: [
+                        Shadow(
+                          color: Colors.black.withOpacity(0.5),
+                          blurRadius: 4,
+                        ),
+                      ],
                     ),
                   ),
                 ],
