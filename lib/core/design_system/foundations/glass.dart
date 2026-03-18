@@ -121,36 +121,56 @@ class GlassContainer extends StatelessWidget {
       margin: margin,
       padding: padding,
       decoration: BoxDecoration(
-        color: DesignColors.lightSurface,
+        // Semi-transparent white with gradient for premium feel
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white.withOpacity(elevated ? 0.88 : 0.82),
+            Colors.white.withOpacity(elevated ? 0.80 : 0.72),
+          ],
+        ),
         borderRadius: BorderRadius.circular(borderRadius),
         border: Border.all(
-          color: DesignColors.lightBorderSubtle,
+          color: Colors.white.withOpacity(0.6),
           width: borderWidth,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: Colors.black.withOpacity(elevated ? 0.08 : 0.05),
+            blurRadius: elevated ? 20 : 12,
+            offset: Offset(0, elevated ? 6 : 3),
           ),
         ],
       ),
       child: child,
     );
 
+    // Wrap with backdrop blur for glass effect
+    Widget glassContent = ClipRRect(
+      borderRadius: BorderRadius.circular(borderRadius),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(
+          sigmaX: elevated ? 10 : 6,
+          sigmaY: elevated ? 10 : 6,
+        ),
+        child: content,
+      ),
+    );
+
     if (onTap != null && enabled) {
-      content = Material(
+      glassContent = Material(
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(borderRadius),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
-          child: content,
+          child: glassContent,
         ),
       );
     }
 
-    return content;
+    return glassContent;
   }
 }
 

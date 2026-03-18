@@ -118,11 +118,51 @@ class PremiumBackground extends StatelessWidget {
   Widget build(BuildContext context) {
     final brightness = Theme.of(context).brightness;
 
-    // Light mode: Simple solid background, no city image
+    // Light mode: Premium soft gradient with subtle depth
     if (brightness == Brightness.light) {
-      return Container(
-        color: DesignColors.lightBackground,
-        child: child,
+      return Stack(
+        fit: StackFit.expand,
+        children: [
+          // Layer 1: Subtle city image (very light)
+          _buildLightBackgroundImage(),
+
+          // Layer 2: Light overlay with gradient for elegance
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    DesignColors.lightBackground.withOpacity(0.92),
+                    DesignColors.lightBackground.withOpacity(0.95),
+                    DesignColors.lightBackground.withOpacity(0.98),
+                  ],
+                  stops: const [0.0, 0.5, 1.0],
+                ),
+              ),
+            ),
+          ),
+
+          // Layer 3: Subtle purple brand glow at top
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  center: const Alignment(0.0, -0.8),
+                  radius: 1.2,
+                  colors: [
+                    DesignColors.accent.withOpacity(0.04),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // Layer 4: Content
+          child,
+        ],
       );
     }
 
@@ -139,10 +179,53 @@ class PremiumBackground extends StatelessWidget {
         // Layer 3: Gradient fade (optional)
         if (showGradient) _buildGradientOverlay(),
 
-        // Layer 4: Content
+        // Layer 4: Subtle purple brand glow
+        Positioned.fill(
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: RadialGradient(
+                center: const Alignment(0.0, -0.5),
+                radius: 1.5,
+                colors: [
+                  DesignColors.accent.withOpacity(0.06),
+                  Colors.transparent,
+                ],
+              ),
+            ),
+          ),
+        ),
+
+        // Layer 5: Content
         child,
       ],
     );
+  }
+
+  Widget _buildLightBackgroundImage() {
+    Widget image = Image.asset(
+      _backgroundAsset,
+      fit: BoxFit.cover,
+      width: double.infinity,
+      height: double.infinity,
+      // Heavily desaturated for light mode
+      colorBlendMode: BlendMode.saturation,
+      color: Colors.grey.withOpacity(0.2),
+      errorBuilder: (context, error, stackTrace) {
+        return Container(color: DesignColors.lightBackground);
+      },
+    );
+
+    // Apply stronger blur for light mode (subtle effect)
+    image = ImageFiltered(
+      imageFilter: ImageFilter.blur(
+        sigmaX: 12.0,
+        sigmaY: 12.0,
+        tileMode: TileMode.clamp,
+      ),
+      child: image,
+    );
+
+    return Positioned.fill(child: image);
   }
 
   Widget _buildBackgroundImage() {
@@ -243,5 +326,105 @@ class ModalBackground extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// Premium auth background - ALWAYS uses dark premium styling.
+///
+/// Auth screens (login, invite, OTP) should always look premium,
+/// regardless of the app's current theme mode. This creates a
+/// consistent, impressive first impression.
+class PremiumAuthBackground extends StatelessWidget {
+  final Widget child;
+
+  /// Overlay opacity (0.6 - 0.75 for auth screens)
+  final double overlayOpacity;
+
+  /// Whether to apply stronger blur
+  final bool applyBlur;
+
+  const PremiumAuthBackground({
+    super.key,
+    required this.child,
+    this.overlayOpacity = 0.65,
+    this.applyBlur = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // Auth screens always use premium dark styling
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        // Layer 1: City background image
+        _buildBackgroundImage(),
+
+        // Layer 2: Dark overlay for readability
+        Positioned.fill(
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  DesignColors.background.withOpacity(overlayOpacity),
+                  DesignColors.background.withOpacity(overlayOpacity + 0.15),
+                  DesignColors.background.withOpacity(overlayOpacity + 0.25),
+                ],
+                stops: const [0.0, 0.5, 1.0],
+              ),
+            ),
+          ),
+        ),
+
+        // Layer 3: Subtle purple brand gradient
+        Positioned.fill(
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: RadialGradient(
+                center: const Alignment(0.0, -0.5),
+                radius: 1.5,
+                colors: [
+                  DesignColors.accent.withOpacity(0.08),
+                  Colors.transparent,
+                ],
+              ),
+            ),
+          ),
+        ),
+
+        // Layer 4: Content
+        child,
+      ],
+    );
+  }
+
+  Widget _buildBackgroundImage() {
+    final asset = BackgroundAssets.getBackgroundForToday();
+
+    Widget image = Image.asset(
+      asset,
+      fit: BoxFit.cover,
+      width: double.infinity,
+      height: double.infinity,
+      colorBlendMode: BlendMode.saturation,
+      color: Colors.grey.withOpacity(0.5),
+      errorBuilder: (context, error, stackTrace) {
+        return Container(color: DesignColors.background);
+      },
+    );
+
+    if (applyBlur) {
+      image = ImageFiltered(
+        imageFilter: ImageFilter.blur(
+          sigmaX: 6.0,
+          sigmaY: 6.0,
+          tileMode: TileMode.clamp,
+        ),
+        child: image,
+      );
+    }
+
+    return Positioned.fill(child: image);
   }
 }

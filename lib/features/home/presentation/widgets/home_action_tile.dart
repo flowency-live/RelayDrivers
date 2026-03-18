@@ -92,65 +92,102 @@ class HomeActionTile extends StatelessWidget {
   Widget _buildLightModeTile(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(DesignSpacing.lg),
-        decoration: BoxDecoration(
-          color: DesignColors.lightSurface,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x0A000000),
-              blurRadius: 8,
-              offset: Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            // Light mode icon container
-            Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                color: accentColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(
-                icon,
-                color: accentColor,
-                size: 24,
-              ),
-            ),
-            const SizedBox(width: DesignSpacing.lg),
-
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    progress.title,
-                    style: DesignTypography.cardTitle.copyWith(
-                      color: DesignColors.lightTextPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    progress.description,
-                    style: DesignTypography.meta.copyWith(
-                      color: DesignColors.lightTextSecondary,
-                    ),
-                  ),
-                  if (!progress.isComplete && progress.remainingItems > 0) ...[
-                    const SizedBox(height: 8),
-                    _buildStatusIndicator(progress, isLight: true),
-                  ],
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+          child: Container(
+            padding: const EdgeInsets.all(DesignSpacing.lg),
+            decoration: BoxDecoration(
+              // Semi-transparent white with subtle gradient
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.white.withOpacity(0.85),
+                  Colors.white.withOpacity(0.75),
                 ],
               ),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.6),
+                width: 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.06),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
+                ),
+                BoxShadow(
+                  color: accentColor.withOpacity(0.05),
+                  blurRadius: 20,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
+            child: Row(
+              children: [
+                // Light mode icon container with soft glow
+                Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        accentColor.withOpacity(0.12),
+                        accentColor.withOpacity(0.08),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [
+                      BoxShadow(
+                        color: accentColor.withOpacity(0.15),
+                        blurRadius: 8,
+                        spreadRadius: -2,
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    icon,
+                    color: accentColor,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: DesignSpacing.lg),
 
-            const SizedBox(width: DesignSpacing.md),
-            _buildTrailingIndicator(progress, isLight: true),
-          ],
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        progress.title,
+                        style: DesignTypography.cardTitle.copyWith(
+                          color: DesignColors.lightTextPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        progress.description,
+                        style: DesignTypography.meta.copyWith(
+                          color: DesignColors.lightTextSecondary,
+                        ),
+                      ),
+                      if (!progress.isComplete && progress.remainingItems > 0) ...[
+                        const SizedBox(height: 8),
+                        _buildStatusIndicator(progress, isLight: true),
+                      ],
+                    ],
+                  ),
+                ),
+
+                const SizedBox(width: DesignSpacing.md),
+                _buildTrailingIndicator(progress, isLight: true),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -304,66 +341,102 @@ class SimpleActionTile extends StatelessWidget {
   Widget _buildLightMode(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(DesignSpacing.lg),
-        decoration: BoxDecoration(
-          color: DesignColors.lightSurface,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x0A000000),
-              blurRadius: 8,
-              offset: Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                color: accentColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(
-                icon,
-                color: accentColor,
-                size: 24,
-              ),
-            ),
-            const SizedBox(width: DesignSpacing.lg),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: DesignTypography.cardTitle.copyWith(
-                      color: DesignColors.lightTextPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: DesignTypography.meta.copyWith(
-                      color: DesignColors.lightTextSecondary,
-                    ),
-                  ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+          child: Container(
+            padding: const EdgeInsets.all(DesignSpacing.lg),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.white.withOpacity(0.85),
+                  Colors.white.withOpacity(0.75),
                 ],
               ),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.6),
+                width: 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.06),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
+                ),
+                BoxShadow(
+                  color: accentColor.withOpacity(0.05),
+                  blurRadius: 20,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
-            if (trailing != null) ...[
-              const SizedBox(width: 8),
-              trailing!,
-            ],
-            const SizedBox(width: 4),
-            Icon(
-              Icons.chevron_right_rounded,
-              color: DesignColors.lightTextMuted,
-              size: 24,
+            child: Row(
+              children: [
+                Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        accentColor.withOpacity(0.12),
+                        accentColor.withOpacity(0.08),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [
+                      BoxShadow(
+                        color: accentColor.withOpacity(0.15),
+                        blurRadius: 8,
+                        spreadRadius: -2,
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    icon,
+                    color: accentColor,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: DesignSpacing.lg),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: DesignTypography.cardTitle.copyWith(
+                          color: DesignColors.lightTextPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        style: DesignTypography.meta.copyWith(
+                          color: DesignColors.lightTextSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (trailing != null) ...[
+                  const SizedBox(width: 8),
+                  trailing!,
+                ],
+                const SizedBox(width: 4),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: DesignColors.lightTextMuted,
+                  size: 24,
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

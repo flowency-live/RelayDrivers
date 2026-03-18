@@ -1,15 +1,25 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../config/environment.dart';
 import '../../../../core/router/app_router.dart';
-import '../../../../core/widgets/pwa_install_banner.dart';
+import '../../../../core/design_system/tokens/colors.dart';
+import '../../../../core/design_system/tokens/typography.dart';
+import '../../../../core/design_system/tokens/spacing.dart';
+import '../../../../core/design_system/foundations/backgrounds.dart';
 import '../../application/providers.dart';
 import '../../domain/models/invite_models.dart';
 
-/// Invite code entry page - first screen for new drivers
+/// Premium invite code entry page - first screen for new drivers.
+///
+/// Design specs:
+/// - City blur background (always premium, never plain white)
+/// - Glass morphism card for inputs
+/// - Purple brand gradient button
+/// - Premium typography and spacing
 class InviteEntryPage extends ConsumerStatefulWidget {
   final String? initialCode;
 
@@ -33,7 +43,6 @@ class _InviteEntryPageState extends ConsumerState<InviteEntryPage> {
     super.initState();
     if (widget.initialCode != null) {
       _codeController.text = widget.initialCode!;
-      // Auto-verify if code is pre-filled
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _handleVerifyCode();
       });
@@ -104,142 +113,193 @@ class _InviteEntryPageState extends ConsumerState<InviteEntryPage> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(inviteAuthStateProvider);
-    final theme = Theme.of(context);
 
     ref.listen<InviteAuthState>(inviteAuthStateProvider, (previous, next) {
       if (next is InviteAuthSuccess) {
-        // Update main auth state with the authenticated user
         ref.read(authStateProvider.notifier).setAuthenticated(next.driver);
-        // Reset invite state to prevent re-triggering on rebuild
         ref.read(inviteAuthStateProvider.notifier).reset();
-        // Navigate to home (router will handle onboarding redirect if needed)
         context.go(AppRoutes.home);
       } else if (next is InviteAuthOtpSent) {
-        // Focus OTP field when OTP is sent
         _otpFocusNode.requestFocus();
       }
     });
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Join Relay'),
-        centerTitle: true,
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // PWA Install Banner
-              const PwaInstallBanner(),
-              const SizedBox(height: 16),
+    return PremiumAuthBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          title: Text(
+            'Join Relay',
+            style: DesignTypography.titleLarge.copyWith(
+              color: DesignColors.textPrimary,
+            ),
+          ),
+          centerTitle: true,
+        ),
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(DesignSpacing.xl),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: DesignSpacing.xl),
 
-              // Logo/Branding
-              Container(
-                height: 100,
-                width: 100,
-                alignment: Alignment.center,
-                child: Image.asset(
-                  'assets/images/Relay_Logo.png',
-                  width: 100,
-                  height: 100,
-                  fit: BoxFit.contain,
+                // Logo with purple glow
+                Center(
+                  child: Container(
+                    padding: const EdgeInsets.all(DesignSpacing.lg),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: DesignColors.accent.withOpacity(0.35),
+                          blurRadius: 50,
+                          spreadRadius: 10,
+                        ),
+                      ],
+                    ),
+                    child: Image.asset(
+                      'assets/images/Relay_Logo.png',
+                      width: 100,
+                      height: 100,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 24),
 
-              // Build content based on state
-              _buildContent(state, theme),
-            ],
+                const SizedBox(height: DesignSpacing.xxl),
+
+                // Main content in glass card
+                _buildGlassCard(
+                  child: _buildContent(state),
+                ),
+
+                const SizedBox(height: DesignSpacing.xxl),
+
+                // Version
+                Text(
+                  'v$appVersion',
+                  textAlign: TextAlign.center,
+                  style: DesignTypography.labelSmall.copyWith(
+                    color: DesignColors.textMuted,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildContent(InviteAuthState state, ThemeData theme) {
+  Widget _buildGlassCard({required Widget child}) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(24),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+        child: Container(
+          padding: const EdgeInsets.all(DesignSpacing.xl),
+          decoration: BoxDecoration(
+            color: DesignColors.glassBackground,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: DesignColors.glassBorder,
+              width: 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.4),
+                blurRadius: 32,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: child,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContent(InviteAuthState state) {
     return switch (state) {
-      InviteAuthInitial() => _buildCodeEntry(theme),
+      InviteAuthInitial() => _buildCodeEntry(),
       InviteAuthVerifying() => _buildLoading('Verifying invite code...'),
       InviteAuthVerified(:final firstName, :final lastName, :final maskedPhone, :final companyName) =>
-        _buildVerified(theme, firstName, lastName, maskedPhone, companyName),
-      InviteAuthOtpSent(:final firstName, :final companyName) => _buildOtpEntry(theme, firstName, companyName),
+        _buildVerified(firstName, lastName, maskedPhone, companyName),
+      InviteAuthOtpSent(:final firstName, :final companyName) =>
+        _buildOtpEntry(firstName, companyName),
       InviteAuthClaiming() => _buildLoading('Verifying...'),
       InviteAuthSuccess() => _buildLoading('Welcome! Setting up...'),
       InviteAuthError(:final message, :final isExpired, :final isUsed) =>
-        _buildError(theme, message, isExpired, isUsed),
+        _buildError(message, isExpired, isUsed),
     };
   }
 
-  Widget _buildCodeEntry(ThemeData theme) {
+  Widget _buildCodeEntry() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
           'Enter Your Invite Code',
-          style: theme.textTheme.headlineSmall,
+          style: DesignTypography.headlineMedium.copyWith(
+            color: DesignColors.textPrimary,
+          ),
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: DesignSpacing.sm),
         Text(
           'Your operator sent you an invite code via SMS. Enter it below to get started.',
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
+          style: DesignTypography.bodyMedium.copyWith(
+            color: DesignColors.textSecondary,
           ),
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: 32),
+        const SizedBox(height: DesignSpacing.xxl),
 
-        // Code input field
-        TextField(
+        // Premium text field
+        _PremiumTextField(
           controller: _codeController,
           focusNode: _codeFocusNode,
-          decoration: InputDecoration(
-            labelText: 'Invite Code',
-            hintText: 'DRV-XXXXXXXX',
-            prefixIcon: const Icon(Icons.confirmation_number),
-            border: const OutlineInputBorder(),
-          ),
+          label: 'Invite Code',
+          hint: 'DRV-XXXXXXXX',
+          icon: Icons.confirmation_number_outlined,
           textCapitalization: TextCapitalization.characters,
           inputFormatters: [
             FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9-]')),
-            UpperCaseTextFormatter(),
+            _UpperCaseFormatter(),
           ],
           onSubmitted: (_) => _handleVerifyCode(),
         ),
-        const SizedBox(height: 24),
 
-        // Verify button
-        FilledButton(
+        const SizedBox(height: DesignSpacing.xl),
+
+        // Premium button
+        _PremiumButton(
+          label: 'Continue',
           onPressed: _handleVerifyCode,
-          child: const Padding(
-            padding: EdgeInsets.symmetric(vertical: 16),
-            child: Text('Continue'),
-          ),
         ),
-        const SizedBox(height: 16),
 
-        // Already have an account link
-        TextButton(
-          onPressed: () => context.go(AppRoutes.phoneLogin),
-          child: const Text('Already have an account? Sign in'),
-        ),
-        const SizedBox(height: 16),
-        // Version number
-        Text(
-          'v$appVersion',
-          textAlign: TextAlign.center,
-          style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.outline,
+        const SizedBox(height: DesignSpacing.lg),
+
+        // Already have account link
+        Center(
+          child: GestureDetector(
+            onTap: () => context.go(AppRoutes.phoneLogin),
+            child: Text(
+              'Already have an account? Sign in',
+              style: DesignTypography.labelMedium.copyWith(
+                color: DesignColors.accent,
               ),
+            ),
+          ),
         ),
       ],
     );
   }
 
   Widget _buildVerified(
-    ThemeData theme,
     String firstName,
     String lastName,
     String maskedPhone,
@@ -248,176 +308,175 @@ class _InviteEntryPageState extends ConsumerState<InviteEntryPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Welcome message
+        // Success indicator
         Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(DesignSpacing.lg),
           decoration: BoxDecoration(
-            color: theme.colorScheme.primaryContainer.withAlpha(50),
-            borderRadius: BorderRadius.circular(12),
+            color: DesignColors.success.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: DesignColors.success.withOpacity(0.3),
+            ),
           ),
           child: Column(
             children: [
-              Icon(
-                Icons.check_circle,
-                size: 48,
-                color: theme.colorScheme.primary,
+              Container(
+                padding: const EdgeInsets.all(DesignSpacing.sm),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: DesignColors.success.withOpacity(0.15),
+                ),
+                child: Icon(
+                  Icons.check_rounded,
+                  color: DesignColors.success,
+                  size: 32,
+                ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: DesignSpacing.md),
               Text(
                 'Welcome, $firstName!',
-                style: theme.textTheme.headlineSmall,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                companyName != null
-                    ? 'You\'ve been invited to drive with $companyName.'
-                    : 'We found your account. Enter your phone number to continue.',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+                style: DesignTypography.headlineSmall.copyWith(
+                  color: DesignColors.textPrimary,
                 ),
-                textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: DesignSpacing.xs),
+              if (companyName != null)
+                Text(
+                  'You\'ve been invited to drive with $companyName',
+                  style: DesignTypography.bodySmall.copyWith(
+                    color: DesignColors.textSecondary,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              const SizedBox(height: DesignSpacing.xs),
               Text(
                 'Phone on file: $maskedPhone',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+                style: DesignTypography.labelSmall.copyWith(
+                  color: DesignColors.textMuted,
                 ),
               ),
             ],
           ),
         ),
-        const SizedBox(height: 24),
+
+        const SizedBox(height: DesignSpacing.xl),
 
         // Phone input
-        TextField(
+        _PremiumTextField(
           controller: _phoneController,
-          decoration: const InputDecoration(
-            labelText: 'Phone Number',
-            hintText: '07XXX XXXXXX',
-            prefixIcon: Icon(Icons.phone),
-            border: OutlineInputBorder(),
-          ),
+          label: 'Phone Number',
+          hint: '07XXX XXXXXX',
+          icon: Icons.phone_outlined,
           keyboardType: TextInputType.phone,
           inputFormatters: [
             FilteringTextInputFormatter.allow(RegExp(r'[0-9+ ]')),
           ],
           onSubmitted: (_) => _handleRequestOtp(),
         ),
-        const SizedBox(height: 24),
 
-        // Request OTP button
-        FilledButton(
+        const SizedBox(height: DesignSpacing.xl),
+
+        _PremiumButton(
+          label: 'Send Verification Code',
           onPressed: _handleRequestOtp,
-          child: const Padding(
-            padding: EdgeInsets.symmetric(vertical: 16),
-            child: Text('Send Verification Code'),
-          ),
         ),
-        const SizedBox(height: 16),
 
-        // Back button
-        TextButton(
-          onPressed: _handleReset,
-          child: const Text('Use Different Invite Code'),
-        ),
-        const SizedBox(height: 16),
-        // Version number
-        Text(
-          'v$appVersion',
-          textAlign: TextAlign.center,
-          style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.outline,
+        const SizedBox(height: DesignSpacing.md),
+
+        Center(
+          child: GestureDetector(
+            onTap: _handleReset,
+            child: Text(
+              'Use different invite code',
+              style: DesignTypography.labelMedium.copyWith(
+                color: DesignColors.textMuted,
               ),
+            ),
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildOtpEntry(ThemeData theme, String firstName, String? companyName) {
+  Widget _buildOtpEntry(String firstName, String? companyName) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
           'Enter Verification Code',
-          style: theme.textTheme.headlineSmall,
+          style: DesignTypography.headlineMedium.copyWith(
+            color: DesignColors.textPrimary,
+          ),
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: DesignSpacing.sm),
         Text(
           'We sent a 6-digit code to your phone.',
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
+          style: DesignTypography.bodyMedium.copyWith(
+            color: DesignColors.textSecondary,
           ),
           textAlign: TextAlign.center,
         ),
         if (companyName != null) ...[
-          const SizedBox(height: 4),
+          const SizedBox(height: DesignSpacing.xs),
           Text(
             'Joining $companyName',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.primary,
-              fontWeight: FontWeight.w500,
+            style: DesignTypography.labelMedium.copyWith(
+              color: DesignColors.accent,
             ),
             textAlign: TextAlign.center,
           ),
         ],
-        const SizedBox(height: 32),
 
-        // OTP input with autofill hint for SMS autofill (iOS/Android)
-        TextField(
+        const SizedBox(height: DesignSpacing.xxl),
+
+        // OTP input
+        _OtpInputField(
           controller: _otpController,
           focusNode: _otpFocusNode,
-          autofillHints: const [AutofillHints.oneTimeCode],
-          decoration: const InputDecoration(
-            labelText: 'Verification Code',
-            hintText: '000000',
-            prefixIcon: Icon(Icons.lock),
-            border: OutlineInputBorder(),
-          ),
-          keyboardType: TextInputType.number,
-          textAlign: TextAlign.center,
-          style: theme.textTheme.headlineSmall?.copyWith(
-            letterSpacing: 8,
-          ),
-          inputFormatters: [
-            FilteringTextInputFormatter.digitsOnly,
-            LengthLimitingTextInputFormatter(6),
-          ],
           onChanged: (value) {
-            if (value.length == 6) {
-              _handleClaimInvite();
-            }
+            if (value.length == 6) _handleClaimInvite();
           },
         ),
-        const SizedBox(height: 24),
 
-        // Verify button
-        FilledButton(
+        const SizedBox(height: DesignSpacing.lg),
+
+        // Resend
+        Center(
+          child: GestureDetector(
+            onTap: _resendSeconds == 0 ? _handleResendOtp : null,
+            child: Text(
+              _resendSeconds > 0
+                  ? 'Resend code in $_resendSeconds seconds'
+                  : 'Resend code',
+              style: DesignTypography.labelMedium.copyWith(
+                color: _resendSeconds == 0
+                    ? DesignColors.accent
+                    : DesignColors.textMuted,
+              ),
+            ),
+          ),
+        ),
+
+        const SizedBox(height: DesignSpacing.xl),
+
+        _PremiumButton(
+          label: 'Verify',
           onPressed: _otpController.text.length == 6 ? _handleClaimInvite : null,
-          child: const Padding(
-            padding: EdgeInsets.symmetric(vertical: 16),
-            child: Text('Verify'),
-          ),
         ),
-        const SizedBox(height: 16),
 
-        // Resend button
-        TextButton(
-          onPressed: _resendSeconds == 0 ? _handleResendOtp : null,
-          child: Text(
-            _resendSeconds > 0
-                ? 'Resend code in ${_resendSeconds}s'
-                : 'Resend Code',
+        const SizedBox(height: DesignSpacing.md),
+
+        Center(
+          child: GestureDetector(
+            onTap: _handleReset,
+            child: Text(
+              'Use different phone number',
+              style: DesignTypography.labelMedium.copyWith(
+                color: DesignColors.textMuted,
+              ),
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
-
-        // Back button
-        TextButton(
-          onPressed: _handleReset,
-          child: const Text('Use Different Phone Number'),
         ),
       ],
     );
@@ -427,69 +486,76 @@ class _InviteEntryPageState extends ConsumerState<InviteEntryPage> {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const SizedBox(height: 48),
-        const CircularProgressIndicator(),
-        const SizedBox(height: 24),
-        Text(message),
+        const SizedBox(height: DesignSpacing.xxl),
+        CircularProgressIndicator(color: DesignColors.accent),
+        const SizedBox(height: DesignSpacing.lg),
+        Text(
+          message,
+          style: DesignTypography.bodyMedium.copyWith(
+            color: DesignColors.textSecondary,
+          ),
+        ),
+        const SizedBox(height: DesignSpacing.xxl),
       ],
     );
   }
 
-  Widget _buildError(
-    ThemeData theme,
-    String message,
-    bool isExpired,
-    bool isUsed,
-  ) {
+  Widget _buildError(String message, bool isExpired, bool isUsed) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        // Error container
         Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(DesignSpacing.lg),
           decoration: BoxDecoration(
-            color: theme.colorScheme.errorContainer.withAlpha(50),
-            borderRadius: BorderRadius.circular(12),
+            color: DesignColors.danger.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: DesignColors.danger.withOpacity(0.3),
+            ),
           ),
           child: Column(
             children: [
               Icon(
                 isExpired || isUsed ? Icons.timer_off : Icons.error_outline,
                 size: 48,
-                color: theme.colorScheme.error,
+                color: DesignColors.danger,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: DesignSpacing.md),
               Text(
                 isExpired
                     ? 'Invite Expired'
                     : isUsed
                         ? 'Invite Already Used'
                         : 'Error',
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  color: theme.colorScheme.error,
+                style: DesignTypography.headlineSmall.copyWith(
+                  color: DesignColors.danger,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: DesignSpacing.sm),
               Text(
                 message,
-                style: theme.textTheme.bodyMedium,
+                style: DesignTypography.bodyMedium.copyWith(
+                  color: DesignColors.textSecondary,
+                ),
                 textAlign: TextAlign.center,
               ),
               if (isExpired) ...[
-                const SizedBox(height: 8),
+                const SizedBox(height: DesignSpacing.sm),
                 Text(
                   'Contact your operator to get a new invite code.',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+                  style: DesignTypography.bodySmall.copyWith(
+                    color: DesignColors.textMuted,
                   ),
                   textAlign: TextAlign.center,
                 ),
               ],
               if (isUsed) ...[
-                const SizedBox(height: 8),
+                const SizedBox(height: DesignSpacing.sm),
                 Text(
                   'If you already started setting up your account, try logging in with your phone number.',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+                  style: DesignTypography.bodySmall.copyWith(
+                    color: DesignColors.textMuted,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -497,35 +563,23 @@ class _InviteEntryPageState extends ConsumerState<InviteEntryPage> {
             ],
           ),
         ),
-        const SizedBox(height: 24),
 
-        // Login with phone button (for already used invites)
+        const SizedBox(height: DesignSpacing.xl),
+
         if (isUsed) ...[
-          FilledButton.icon(
+          _PremiumButton(
+            label: 'Log in with Phone Number',
             onPressed: () => context.go(AppRoutes.phoneLogin),
-            icon: const Icon(Icons.phone),
-            label: const Padding(
-              padding: EdgeInsets.symmetric(vertical: 16),
-              child: Text('Log in with Phone Number'),
-            ),
           ),
-          const SizedBox(height: 12),
-          // Try again with different code
-          OutlinedButton(
+          const SizedBox(height: DesignSpacing.md),
+          _SecondaryButton(
+            label: 'Try a Different Code',
             onPressed: _handleReset,
-            child: const Padding(
-              padding: EdgeInsets.symmetric(vertical: 16),
-              child: Text('Try a Different Code'),
-            ),
           ),
         ] else ...[
-          // Try again button
-          FilledButton(
+          _PremiumButton(
+            label: 'Try Again',
             onPressed: _handleReset,
-            child: const Padding(
-              padding: EdgeInsets.symmetric(vertical: 16),
-              child: Text('Try Again'),
-            ),
           ),
         ],
       ],
@@ -533,8 +587,239 @@ class _InviteEntryPageState extends ConsumerState<InviteEntryPage> {
   }
 }
 
-/// Text input formatter to convert to uppercase
-class UpperCaseTextFormatter extends TextInputFormatter {
+/// Premium text field with glass styling
+class _PremiumTextField extends StatelessWidget {
+  final TextEditingController controller;
+  final FocusNode? focusNode;
+  final String label;
+  final String hint;
+  final IconData icon;
+  final TextInputType keyboardType;
+  final TextCapitalization textCapitalization;
+  final List<TextInputFormatter>? inputFormatters;
+  final void Function(String)? onSubmitted;
+
+  const _PremiumTextField({
+    required this.controller,
+    this.focusNode,
+    required this.label,
+    required this.hint,
+    required this.icon,
+    this.keyboardType = TextInputType.text,
+    this.textCapitalization = TextCapitalization.none,
+    this.inputFormatters,
+    this.onSubmitted,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      controller: controller,
+      focusNode: focusNode,
+      keyboardType: keyboardType,
+      textCapitalization: textCapitalization,
+      style: DesignTypography.titleMedium.copyWith(
+        color: DesignColors.textPrimary,
+      ),
+      inputFormatters: inputFormatters,
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        prefixIcon: Icon(icon, color: DesignColors.accent),
+        filled: true,
+        fillColor: DesignColors.surface.withOpacity(0.3),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: DesignColors.glassBorder),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: DesignColors.glassBorder),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: DesignColors.accent, width: 2),
+        ),
+        labelStyle: DesignTypography.labelMedium.copyWith(
+          color: DesignColors.textSecondary,
+        ),
+        hintStyle: DesignTypography.meta.copyWith(
+          color: DesignColors.textMuted,
+        ),
+      ),
+      onFieldSubmitted: onSubmitted,
+    );
+  }
+}
+
+/// OTP input with large letters
+class _OtpInputField extends StatelessWidget {
+  final TextEditingController controller;
+  final FocusNode? focusNode;
+  final void Function(String)? onChanged;
+
+  const _OtpInputField({
+    required this.controller,
+    this.focusNode,
+    this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      controller: controller,
+      focusNode: focusNode,
+      keyboardType: TextInputType.number,
+      textAlign: TextAlign.center,
+      autofillHints: const [AutofillHints.oneTimeCode],
+      style: const TextStyle(
+        fontSize: 32,
+        letterSpacing: 16,
+        fontWeight: FontWeight.w600,
+        color: DesignColors.textPrimary,
+      ),
+      inputFormatters: [
+        FilteringTextInputFormatter.digitsOnly,
+        LengthLimitingTextInputFormatter(6),
+      ],
+      decoration: InputDecoration(
+        hintText: '------',
+        counterText: '',
+        filled: true,
+        fillColor: DesignColors.surface.withOpacity(0.3),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: DesignColors.glassBorder),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: DesignColors.glassBorder),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: DesignColors.accent, width: 2),
+        ),
+        hintStyle: TextStyle(
+          fontSize: 32,
+          letterSpacing: 16,
+          color: DesignColors.textMuted,
+        ),
+      ),
+      maxLength: 6,
+      onChanged: onChanged,
+    );
+  }
+}
+
+/// Premium gradient button
+class _PremiumButton extends StatelessWidget {
+  final String label;
+  final VoidCallback? onPressed;
+  final bool isLoading;
+
+  const _PremiumButton({
+    required this.label,
+    this.onPressed,
+    this.isLoading = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onPressed != null && !isLoading;
+
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        gradient: enabled
+            ? const LinearGradient(
+                colors: [DesignColors.accent, Color(0xFF7C3AED)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              )
+            : null,
+        color: enabled ? null : DesignColors.textMuted.withOpacity(0.3),
+        boxShadow: enabled
+            ? [
+                BoxShadow(
+                  color: DesignColors.accent.withOpacity(0.4),
+                  blurRadius: 20,
+                  offset: const Offset(0, 6),
+                ),
+              ]
+            : null,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: enabled ? onPressed : null,
+          borderRadius: BorderRadius.circular(14),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 18),
+            child: Center(
+              child: isLoading
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : Text(
+                      label,
+                      style: DesignTypography.button.copyWith(
+                        color: Colors.white,
+                      ),
+                    ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Secondary outlined button
+class _SecondaryButton extends StatelessWidget {
+  final String label;
+  final VoidCallback onPressed;
+
+  const _SecondaryButton({
+    required this.label,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: DesignColors.glassBorder),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(14),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Center(
+              child: Text(
+                label,
+                style: DesignTypography.button.copyWith(
+                  color: DesignColors.textSecondary,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Uppercase text formatter
+class _UpperCaseFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(
     TextEditingValue oldValue,

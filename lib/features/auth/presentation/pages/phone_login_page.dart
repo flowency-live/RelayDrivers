@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,7 +9,7 @@ import '../../../../core/router/app_router.dart';
 import '../../../../core/design_system/tokens/colors.dart';
 import '../../../../core/design_system/tokens/typography.dart';
 import '../../../../core/design_system/tokens/spacing.dart';
-import '../../../../core/design_system/foundations/glass.dart';
+import '../../../../core/design_system/foundations/backgrounds.dart';
 import '../../application/providers.dart';
 import '../../domain/models/otp_models.dart';
 
@@ -125,7 +126,6 @@ class _PhoneLoginPageState extends ConsumerState<PhoneLoginPage> {
   @override
   Widget build(BuildContext context) {
     final phoneAuthState = ref.watch(phoneAuthStateProvider);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     ref.listen<PhoneAuthState>(phoneAuthStateProvider, (previous, next) {
       if (next is PhoneAuthOtpSent && previous is! PhoneAuthOtpSent) {
@@ -140,140 +140,148 @@ class _PhoneLoginPageState extends ConsumerState<PhoneLoginPage> {
       }
     });
 
-    return Scaffold(
-      backgroundColor: isDark ? DesignColors.background : DesignColors.lightBackground,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(DesignSpacing.xl),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: DesignSpacing.huge),
+    // Auth screens ALWAYS use premium dark styling
+    return PremiumAuthBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(DesignSpacing.xl),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: DesignSpacing.huge),
 
-              // Logo with purple glow
-              Center(
-                child: Container(
-                  padding: const EdgeInsets.all(DesignSpacing.lg),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    boxShadow: isDark
-                        ? [
-                            BoxShadow(
-                              color: DesignColors.accent.withOpacity(0.3),
-                              blurRadius: 40,
-                              spreadRadius: 5,
-                            ),
-                          ]
-                        : null,
-                  ),
-                  child: Image.asset(
-                    'assets/images/Relay_Logo.png',
-                    width: 100,
-                    height: 100,
-                    fit: BoxFit.contain,
+                // Logo with purple glow
+                Center(
+                  child: Container(
+                    padding: const EdgeInsets.all(DesignSpacing.lg),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: DesignColors.accent.withOpacity(0.35),
+                          blurRadius: 50,
+                          spreadRadius: 10,
+                        ),
+                      ],
+                    ),
+                    child: Image.asset(
+                      'assets/images/Relay_Logo.png',
+                      width: 100,
+                      height: 100,
+                      fit: BoxFit.contain,
+                    ),
                   ),
                 ),
-              ),
 
-              const SizedBox(height: DesignSpacing.xl),
+                const SizedBox(height: DesignSpacing.xl),
 
-              // Title
-              Text(
-                'Relay Drivers',
-                textAlign: TextAlign.center,
-                style: DesignTypography.displaySmall.copyWith(
-                  color: isDark ? DesignColors.textPrimary : DesignColors.lightTextPrimary,
+                // Title
+                Text(
+                  'Relay Drivers',
+                  textAlign: TextAlign.center,
+                  style: DesignTypography.displaySmall.copyWith(
+                    color: DesignColors.textPrimary,
+                  ),
                 ),
-              ),
 
-              const SizedBox(height: DesignSpacing.sm),
+                const SizedBox(height: DesignSpacing.sm),
 
-              // Subtitle
-              _buildSubtitle(phoneAuthState, isDark),
+                // Subtitle
+                _buildSubtitle(phoneAuthState),
 
-              const SizedBox(height: DesignSpacing.xxxl),
+                const SizedBox(height: DesignSpacing.xxxl),
 
-              // Main content in glass card
-              if (isDark)
-                GlassCard(
-                  elevated: true,
-                  padding: const EdgeInsets.all(DesignSpacing.xl),
-                  child: _buildContent(phoneAuthState, isDark),
-                )
-              else
-                Container(
-                  padding: const EdgeInsets.all(DesignSpacing.xl),
-                  decoration: BoxDecoration(
-                    color: DesignColors.lightSurface,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x0A000000),
-                        blurRadius: 20,
-                        offset: Offset(0, 4),
+                // Main content in glass card
+                _buildGlassCard(
+                  child: _buildContent(phoneAuthState),
+                ),
+
+                const SizedBox(height: DesignSpacing.xl),
+
+                // Alternative login
+                if (phoneAuthState is PhoneAuthInitial ||
+                    phoneAuthState is PhoneAuthError)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Prefer email? ',
+                        style: DesignTypography.meta.copyWith(
+                          color: DesignColors.textSecondary,
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () => context.go(AppRoutes.login),
+                        child: Text(
+                          'Sign in with email',
+                          style: DesignTypography.labelMedium.copyWith(
+                            color: DesignColors.accent,
+                          ),
+                        ),
                       ),
                     ],
                   ),
-                  child: _buildContent(phoneAuthState, isDark),
+
+                const SizedBox(height: DesignSpacing.xxl),
+
+                // Footer
+                Text(
+                  'By signing in, you agree to the Terms of Service and Privacy Policy',
+                  textAlign: TextAlign.center,
+                  style: DesignTypography.labelSmall.copyWith(
+                    color: DesignColors.textMuted,
+                  ),
                 ),
 
-              const SizedBox(height: DesignSpacing.xl),
+                const SizedBox(height: DesignSpacing.md),
 
-              // Alternative login
-              if (phoneAuthState is PhoneAuthInitial ||
-                  phoneAuthState is PhoneAuthError)
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Prefer email? ',
-                      style: DesignTypography.meta.copyWith(
-                        color: isDark
-                            ? DesignColors.textSecondary
-                            : DesignColors.lightTextSecondary,
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () => context.go(AppRoutes.login),
-                      child: Text(
-                        'Sign in with email',
-                        style: DesignTypography.labelMedium.copyWith(
-                          color: DesignColors.accent,
-                        ),
-                      ),
-                    ),
-                  ],
+                // Version
+                Text(
+                  'v$appVersion',
+                  textAlign: TextAlign.center,
+                  style: DesignTypography.labelSmall.copyWith(
+                    color: DesignColors.textMuted,
+                  ),
                 ),
-
-              const SizedBox(height: DesignSpacing.xxl),
-
-              // Footer
-              Text(
-                'By signing in, you agree to the Terms of Service and Privacy Policy',
-                textAlign: TextAlign.center,
-                style: DesignTypography.labelSmall.copyWith(
-                  color: isDark ? DesignColors.textMuted : DesignColors.lightTextMuted,
-                ),
-              ),
-
-              const SizedBox(height: DesignSpacing.md),
-
-              // Version
-              Text(
-                'v$appVersion',
-                textAlign: TextAlign.center,
-                style: DesignTypography.labelSmall.copyWith(
-                  color: isDark ? DesignColors.textMuted : DesignColors.lightTextMuted,
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildSubtitle(PhoneAuthState state, bool isDark) {
+  Widget _buildGlassCard({required Widget child}) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(24),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+        child: Container(
+          padding: const EdgeInsets.all(DesignSpacing.xl),
+          decoration: BoxDecoration(
+            color: DesignColors.glassBackground,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: DesignColors.glassBorder,
+              width: 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.4),
+                blurRadius: 32,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: child,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSubtitle(PhoneAuthState state) {
     String text;
     if (state is PhoneAuthOtpSent) {
       if (state.isExistingUser && state.displayName != null) {
@@ -289,23 +297,23 @@ class _PhoneLoginPageState extends ConsumerState<PhoneLoginPage> {
       text,
       textAlign: TextAlign.center,
       style: DesignTypography.meta.copyWith(
-        color: isDark ? DesignColors.textSecondary : DesignColors.lightTextSecondary,
+        color: DesignColors.textSecondary,
       ),
     );
   }
 
-  Widget _buildContent(PhoneAuthState state, bool isDark) {
+  Widget _buildContent(PhoneAuthState state) {
     return switch (state) {
-      PhoneAuthInitial() => _buildPhoneInput(isLoading: false, isDark: isDark),
-      PhoneAuthChecking() => _buildPhoneInput(isLoading: true, isDark: isDark),
-      PhoneAuthOtpSent() => _buildOtpInput(state, isDark),
-      PhoneAuthVerifying() => _buildOtpVerifying(isDark),
-      PhoneAuthSuccess() => _buildSuccess(state, isDark),
-      PhoneAuthError() => _buildError(state, isDark),
+      PhoneAuthInitial() => _buildPhoneInput(isLoading: false),
+      PhoneAuthChecking() => _buildPhoneInput(isLoading: true),
+      PhoneAuthOtpSent() => _buildOtpInput(state),
+      PhoneAuthVerifying() => _buildOtpVerifying(),
+      PhoneAuthSuccess() => _buildSuccess(state),
+      PhoneAuthError() => _buildError(state),
     };
   }
 
-  Widget _buildPhoneInput({required bool isLoading, required bool isDark}) {
+  Widget _buildPhoneInput({required bool isLoading}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -318,7 +326,6 @@ class _PhoneLoginPageState extends ConsumerState<PhoneLoginPage> {
           hint: '7XXX XXXXXX',
           prefix: '+44 ',
           icon: Icons.phone_outlined,
-          isDark: isDark,
           onSubmitted: (_) => _handleSendOtp(),
         ),
         const SizedBox(height: DesignSpacing.xl),
@@ -331,7 +338,7 @@ class _PhoneLoginPageState extends ConsumerState<PhoneLoginPage> {
     );
   }
 
-  Widget _buildOtpInput(PhoneAuthOtpSent state, bool isDark) {
+  Widget _buildOtpInput(PhoneAuthOtpSent state) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -339,9 +346,7 @@ class _PhoneLoginPageState extends ConsumerState<PhoneLoginPage> {
         Container(
           padding: const EdgeInsets.all(DesignSpacing.md),
           decoration: BoxDecoration(
-            color: isDark
-                ? DesignColors.accent.withOpacity(0.1)
-                : DesignColors.accent.withOpacity(0.05),
+            color: DesignColors.accent.withOpacity(0.1),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: DesignColors.accent.withOpacity(0.2),
@@ -355,7 +360,7 @@ class _PhoneLoginPageState extends ConsumerState<PhoneLoginPage> {
                 child: Text(
                   _formatPhone(state.phone),
                   style: DesignTypography.titleMedium.copyWith(
-                    color: isDark ? DesignColors.textPrimary : DesignColors.lightTextPrimary,
+                    color: DesignColors.textPrimary,
                   ),
                 ),
               ),
@@ -378,7 +383,6 @@ class _PhoneLoginPageState extends ConsumerState<PhoneLoginPage> {
         _OtpInputField(
           controller: _otpController,
           focusNode: _otpFocusNode,
-          isDark: isDark,
           onChanged: (value) {
             if (value.length == 6) _handleVerifyOtp();
           },
@@ -397,7 +401,7 @@ class _PhoneLoginPageState extends ConsumerState<PhoneLoginPage> {
               style: DesignTypography.labelMedium.copyWith(
                 color: _resendSeconds == 0
                     ? DesignColors.accent
-                    : (isDark ? DesignColors.textMuted : DesignColors.lightTextMuted),
+                    : DesignColors.textMuted,
               ),
             ),
           ),
@@ -414,7 +418,7 @@ class _PhoneLoginPageState extends ConsumerState<PhoneLoginPage> {
     );
   }
 
-  Widget _buildOtpVerifying(bool isDark) {
+  Widget _buildOtpVerifying() {
     return Column(
       children: [
         const SizedBox(height: DesignSpacing.xxl),
@@ -423,7 +427,7 @@ class _PhoneLoginPageState extends ConsumerState<PhoneLoginPage> {
         Text(
           'Verifying...',
           style: DesignTypography.titleMedium.copyWith(
-            color: isDark ? DesignColors.textPrimary : DesignColors.lightTextPrimary,
+            color: DesignColors.textPrimary,
           ),
         ),
         const SizedBox(height: DesignSpacing.xxl),
@@ -431,7 +435,7 @@ class _PhoneLoginPageState extends ConsumerState<PhoneLoginPage> {
     );
   }
 
-  Widget _buildSuccess(PhoneAuthSuccess state, bool isDark) {
+  Widget _buildSuccess(PhoneAuthSuccess state) {
     return Column(
       children: [
         const SizedBox(height: DesignSpacing.xxl),
@@ -457,7 +461,7 @@ class _PhoneLoginPageState extends ConsumerState<PhoneLoginPage> {
         Text(
           state.isNewDriver ? 'Welcome!' : 'Welcome back!',
           style: DesignTypography.headlineMedium.copyWith(
-            color: isDark ? DesignColors.textPrimary : DesignColors.lightTextPrimary,
+            color: DesignColors.textPrimary,
           ),
         ),
         const SizedBox(height: DesignSpacing.xxl),
@@ -465,7 +469,7 @@ class _PhoneLoginPageState extends ConsumerState<PhoneLoginPage> {
     );
   }
 
-  Widget _buildError(PhoneAuthError state, bool isDark) {
+  Widget _buildError(PhoneAuthError state) {
     final showOtpInput = _otpController.text.isNotEmpty;
 
     return Column(
@@ -501,7 +505,6 @@ class _PhoneLoginPageState extends ConsumerState<PhoneLoginPage> {
           _OtpInputField(
             controller: _otpController,
             focusNode: _otpFocusNode,
-            isDark: isDark,
             onChanged: (value) {
               if (value.length == 6) _handleVerifyOtp();
             },
@@ -521,9 +524,9 @@ class _PhoneLoginPageState extends ConsumerState<PhoneLoginPage> {
           const SizedBox(height: DesignSpacing.lg),
           _PremiumButton(label: 'Try again', onPressed: _handleVerifyOtp),
           const SizedBox(height: DesignSpacing.sm),
-          _SecondaryButton(label: 'Use different number', onPressed: _handleChangePhone, isDark: isDark),
+          _SecondaryButton(label: 'Use different number', onPressed: _handleChangePhone),
         ] else
-          _buildPhoneInput(isLoading: false, isDark: isDark),
+          _buildPhoneInput(isLoading: false),
       ],
     );
   }
@@ -536,7 +539,7 @@ class _PhoneLoginPageState extends ConsumerState<PhoneLoginPage> {
   }
 }
 
-/// Premium styled text field
+/// Premium styled text field - always dark premium styling
 class _PremiumTextField extends StatelessWidget {
   final TextEditingController controller;
   final FocusNode? focusNode;
@@ -546,19 +549,17 @@ class _PremiumTextField extends StatelessWidget {
   final String hint;
   final String? prefix;
   final IconData icon;
-  final bool isDark;
   final void Function(String)? onSubmitted;
 
   const _PremiumTextField({
     required this.controller,
     this.focusNode,
-    required this.keyboardType,
+    this.keyboardType = TextInputType.phone,
     this.enabled = true,
     required this.label,
     required this.hint,
     this.prefix,
     required this.icon,
-    required this.isDark,
     this.onSubmitted,
   });
 
@@ -570,7 +571,7 @@ class _PremiumTextField extends StatelessWidget {
       keyboardType: keyboardType,
       enabled: enabled,
       style: DesignTypography.titleMedium.copyWith(
-        color: isDark ? DesignColors.textPrimary : DesignColors.lightTextPrimary,
+        color: DesignColors.textPrimary,
       ),
       inputFormatters: [
         FilteringTextInputFormatter.allow(RegExp(r'[\d\s\-\+\(\)]')),
@@ -582,28 +583,24 @@ class _PremiumTextField extends StatelessWidget {
         prefixText: prefix,
         prefixIcon: Icon(icon, color: DesignColors.accent),
         filled: true,
-        fillColor: isDark ? DesignColors.surface.withOpacity(0.5) : DesignColors.lightSurface,
+        fillColor: DesignColors.surface.withOpacity(0.3),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(
-            color: isDark ? DesignColors.glassBorder : DesignColors.lightBorderSubtle,
-          ),
+          borderSide: BorderSide(color: DesignColors.glassBorder),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(
-            color: isDark ? DesignColors.glassBorder : DesignColors.lightBorderSubtle,
-          ),
+          borderSide: BorderSide(color: DesignColors.glassBorder),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: const BorderSide(color: DesignColors.accent, width: 2),
         ),
         labelStyle: DesignTypography.labelMedium.copyWith(
-          color: isDark ? DesignColors.textSecondary : DesignColors.lightTextSecondary,
+          color: DesignColors.textSecondary,
         ),
         hintStyle: DesignTypography.meta.copyWith(
-          color: isDark ? DesignColors.textMuted : DesignColors.lightTextMuted,
+          color: DesignColors.textMuted,
         ),
       ),
       onFieldSubmitted: onSubmitted,
@@ -611,17 +608,15 @@ class _PremiumTextField extends StatelessWidget {
   }
 }
 
-/// Premium styled OTP input
+/// Premium styled OTP input - always dark premium styling
 class _OtpInputField extends StatelessWidget {
   final TextEditingController controller;
   final FocusNode? focusNode;
-  final bool isDark;
   final void Function(String)? onChanged;
 
   const _OtpInputField({
     required this.controller,
     this.focusNode,
-    required this.isDark,
     this.onChanged,
   });
 
@@ -633,11 +628,11 @@ class _OtpInputField extends StatelessWidget {
       keyboardType: TextInputType.number,
       textAlign: TextAlign.center,
       autofillHints: const [AutofillHints.oneTimeCode],
-      style: TextStyle(
-        fontSize: 28,
-        letterSpacing: 12,
+      style: const TextStyle(
+        fontSize: 32,
+        letterSpacing: 16,
         fontWeight: FontWeight.w600,
-        color: isDark ? DesignColors.textPrimary : DesignColors.lightTextPrimary,
+        color: DesignColors.textPrimary,
       ),
       inputFormatters: [
         FilteringTextInputFormatter.digitsOnly,
@@ -647,27 +642,23 @@ class _OtpInputField extends StatelessWidget {
         hintText: '------',
         counterText: '',
         filled: true,
-        fillColor: isDark ? DesignColors.surface.withOpacity(0.5) : DesignColors.lightSurface,
+        fillColor: DesignColors.surface.withOpacity(0.3),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(
-            color: isDark ? DesignColors.glassBorder : DesignColors.lightBorderSubtle,
-          ),
+          borderSide: BorderSide(color: DesignColors.glassBorder),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(
-            color: isDark ? DesignColors.glassBorder : DesignColors.lightBorderSubtle,
-          ),
+          borderSide: BorderSide(color: DesignColors.glassBorder),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: const BorderSide(color: DesignColors.accent, width: 2),
         ),
         hintStyle: TextStyle(
-          fontSize: 28,
-          letterSpacing: 12,
-          color: isDark ? DesignColors.textMuted : DesignColors.lightTextMuted,
+          fontSize: 32,
+          letterSpacing: 16,
+          color: DesignColors.textMuted,
         ),
       ),
       maxLength: 6,
@@ -742,16 +733,14 @@ class _PremiumButton extends StatelessWidget {
   }
 }
 
-/// Secondary outlined button
+/// Secondary outlined button - always dark premium styling
 class _SecondaryButton extends StatelessWidget {
   final String label;
   final VoidCallback onPressed;
-  final bool isDark;
 
   const _SecondaryButton({
     required this.label,
     required this.onPressed,
-    required this.isDark,
   });
 
   @override
@@ -759,9 +748,7 @@ class _SecondaryButton extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: isDark ? DesignColors.glassBorder : DesignColors.lightBorderSubtle,
-        ),
+        border: Border.all(color: DesignColors.glassBorder),
       ),
       child: Material(
         color: Colors.transparent,
@@ -774,7 +761,7 @@ class _SecondaryButton extends StatelessWidget {
               child: Text(
                 label,
                 style: DesignTypography.button.copyWith(
-                  color: isDark ? DesignColors.textSecondary : DesignColors.lightTextSecondary,
+                  color: DesignColors.textSecondary,
                 ),
               ),
             ),
