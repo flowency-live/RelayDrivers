@@ -156,7 +156,15 @@ class GreetingHeader extends StatelessWidget {
                           size: 24,
                           color: isDark
                               ? DesignColors.textSecondary
-                              : DesignColors.lightTextSecondary,
+                              : Colors.white,
+                          shadows: isDark
+                              ? null
+                              : [
+                                  Shadow(
+                                    color: Colors.black.withOpacity(0.5),
+                                    blurRadius: 6,
+                                  ),
+                                ],
                         ),
                         if (unreadCount > 0)
                           Positioned(

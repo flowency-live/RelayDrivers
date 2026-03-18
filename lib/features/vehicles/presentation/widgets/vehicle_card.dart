@@ -20,12 +20,14 @@ class VehicleCard extends StatelessWidget {
     this.isDeleting = false,
   });
 
-  (Color, Color) _getComplianceColors() {
+  (Color, Color) _getComplianceColors(bool isDark) {
     return switch (vehicle.complianceStatus.toLowerCase()) {
       'compliant' => (RelayColors.success, RelayColors.successBackground),
       'expiring' => (RelayColors.warning, RelayColors.warningBackground),
       'non_compliant' || 'expired' => (RelayColors.danger, RelayColors.dangerBackground),
-      _ => (RelayColors.darkTextMuted, RelayColors.darkBorderSubtle),
+      _ => isDark
+          ? (RelayColors.darkTextMuted, RelayColors.darkBorderSubtle)
+          : (RelayColors.lightTextMuted, RelayColors.lightBorderSubtle),
     };
   }
 
@@ -49,8 +51,8 @@ class VehicleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (complianceColor, complianceBg) = _getComplianceColors();
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final (complianceColor, complianceBg) = _getComplianceColors(isDark);
 
     return Material(
       color: isDark ? RelayColors.darkSurface1 : RelayColors.lightSurface,

@@ -91,8 +91,8 @@ class _WeekdayHeaders extends StatelessWidget {
               day,
               style: DesignTypography.labelSmall.copyWith(
                 color: isDark
-                    ? DesignColors.textMuted
-                    : DesignColors.lightTextMuted,
+                    ? DesignColors.textSecondary
+                    : DesignColors.lightTextPrimary.withOpacity(0.7),
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -292,7 +292,7 @@ class _DayCell extends StatelessWidget {
 
   Color _getTextColor(DayStatus status) {
     if (status == DayStatus.notWorking) {
-      return isDark ? DesignColors.textMuted : DesignColors.lightTextMuted;
+      return isDark ? DesignColors.textMuted : DesignColors.lightTextSecondary;
     }
 
     return isDark ? DesignColors.textPrimary : DesignColors.lightTextPrimary;
