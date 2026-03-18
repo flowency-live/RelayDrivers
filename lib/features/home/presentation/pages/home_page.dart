@@ -6,6 +6,8 @@ import '../../../auth/domain/models/driver_user.dart' as driver_user;
 import '../../../profile/application/profile_providers.dart';
 import '../../../notifications/presentation/widgets/notification_bell.dart';
 import '../../../onboarding/application/onboarding_providers.dart';
+import '../../../vehicles/application/vehicle_providers.dart';
+import '../../../documents/application/document_providers.dart';
 import '../../../../config/environment.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/design_system/tokens/colors.dart';
@@ -71,9 +73,11 @@ class _HomePageState extends ConsumerState<HomePage> {
   @override
   void initState() {
     super.initState();
-    // Load profile to get tenant contact info
+    // Load all data needed for onboarding progress calculation
     Future.microtask(() {
       ref.read(profileStateProvider.notifier).loadProfile();
+      ref.read(vehicleStateProvider.notifier).loadVehicles();
+      ref.read(documentStateProvider.notifier).loadDocuments();
     });
   }
 

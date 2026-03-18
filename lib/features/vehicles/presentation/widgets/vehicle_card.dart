@@ -63,8 +63,8 @@ class VehicleCard extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(AppTheme.borderRadius),
             border: Border.all(
-              color: isDark ? RelayColors.darkBorderSubtle : RelayColors.lightBorderSubtle,
-              width: 1,
+              color: isDark ? RelayColors.darkBorderStrong : RelayColors.lightBorderStrong,
+              width: 1.5,
             ),
           ),
           child: Column(
@@ -97,6 +97,7 @@ class VehicleCard extends StatelessWidget {
                               color: isDark
                                   ? RelayColors.darkTextPrimary
                                   : RelayColors.lightTextPrimary,
+                              fontWeight: FontWeight.w600,
                             ),
                       ),
                       if (vehicle.colour != null) ...[
@@ -107,6 +108,7 @@ class VehicleCard extends StatelessWidget {
                                 color: isDark
                                     ? RelayColors.darkTextSecondary
                                     : RelayColors.lightTextSecondary,
+                                fontWeight: FontWeight.w500,
                               ),
                         ),
                       ],
