@@ -308,60 +308,36 @@ class _InviteEntryPageState extends ConsumerState<InviteEntryPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Success indicator
-        Container(
-          padding: const EdgeInsets.all(DesignSpacing.lg),
-          decoration: BoxDecoration(
-            color: DesignColors.success.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: DesignColors.success.withOpacity(0.3),
+        // Simple welcome text - no tacky colored panels
+        Text(
+          'Welcome, $firstName!',
+          style: DesignTypography.headlineMedium.copyWith(
+            color: DesignColors.textPrimary,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        if (companyName != null) ...[
+          const SizedBox(height: DesignSpacing.sm),
+          Text(
+            'Invited to drive with $companyName',
+            style: DesignTypography.bodyMedium.copyWith(
+              color: DesignColors.textSecondary,
             ),
+            textAlign: TextAlign.center,
           ),
-          child: Column(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(DesignSpacing.sm),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: DesignColors.success.withOpacity(0.15),
-                ),
-                child: Icon(
-                  Icons.check_rounded,
-                  color: DesignColors.success,
-                  size: 32,
-                ),
-              ),
-              const SizedBox(height: DesignSpacing.md),
-              Text(
-                'Welcome, $firstName!',
-                style: DesignTypography.headlineSmall.copyWith(
-                  color: DesignColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: DesignSpacing.xs),
-              if (companyName != null)
-                Text(
-                  'You\'ve been invited to drive with $companyName',
-                  style: DesignTypography.bodySmall.copyWith(
-                    color: DesignColors.textSecondary,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              const SizedBox(height: DesignSpacing.xs),
-              Text(
-                'Phone on file: $maskedPhone',
-                style: DesignTypography.labelSmall.copyWith(
-                  color: DesignColors.textMuted,
-                ),
-              ),
-            ],
+        ],
+        const SizedBox(height: DesignSpacing.xs),
+        Text(
+          'Phone on file: $maskedPhone',
+          style: DesignTypography.labelSmall.copyWith(
+            color: DesignColors.textMuted,
           ),
+          textAlign: TextAlign.center,
         ),
 
         const SizedBox(height: DesignSpacing.xl),
 
-        // Phone input
+        // Phone input - positioned for mobile keyboard
         _PremiumTextField(
           controller: _phoneController,
           label: 'Phone Number',
@@ -374,7 +350,7 @@ class _InviteEntryPageState extends ConsumerState<InviteEntryPage> {
           onSubmitted: (_) => _handleRequestOtp(),
         ),
 
-        const SizedBox(height: DesignSpacing.xl),
+        const SizedBox(height: DesignSpacing.lg),
 
         _PremiumButton(
           label: 'Send Verification Code',

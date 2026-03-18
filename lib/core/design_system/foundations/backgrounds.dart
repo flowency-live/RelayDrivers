@@ -92,12 +92,12 @@ class PremiumBackground extends StatelessWidget {
   const PremiumBackground({
     super.key,
     required this.child,
-    this.overlayOpacity = 0.45,
+    this.overlayOpacity = 0.30,
     this.rotateDailyBackground = true,
     this.backgroundIndex,
     this.customBackground,
     this.applyBlur = true,
-    this.blurSigma = 3.0,
+    this.blurSigma = 1.5,
     this.showGradient = true,
   });
 
@@ -126,7 +126,7 @@ class PremiumBackground extends StatelessWidget {
           // Layer 1: Subtle city image (very light)
           _buildLightBackgroundImage(),
 
-          // Layer 2: Light overlay - subtle so city shows through
+          // Layer 2: Light overlay - very subtle so city shows through
           Positioned.fill(
             child: Container(
               decoration: BoxDecoration(
@@ -134,9 +134,9 @@ class PremiumBackground extends StatelessWidget {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    DesignColors.lightBackground.withOpacity(0.45),
-                    DesignColors.lightBackground.withOpacity(0.50),
-                    DesignColors.lightBackground.withOpacity(0.55),
+                    DesignColors.lightBackground.withOpacity(0.20),
+                    DesignColors.lightBackground.withOpacity(0.25),
+                    DesignColors.lightBackground.withOpacity(0.30),
                   ],
                   stops: const [0.0, 0.5, 1.0],
                 ),
@@ -215,11 +215,11 @@ class PremiumBackground extends StatelessWidget {
       },
     );
 
-    // Gentle blur to maintain city visibility
+    // Minimal blur to maintain city visibility
     image = ImageFiltered(
       imageFilter: ImageFilter.blur(
-        sigmaX: 6.0,
-        sigmaY: 6.0,
+        sigmaX: 2.0,
+        sigmaY: 2.0,
         tileMode: TileMode.clamp,
       ),
       child: image,
@@ -346,7 +346,7 @@ class PremiumAuthBackground extends StatelessWidget {
   const PremiumAuthBackground({
     super.key,
     required this.child,
-    this.overlayOpacity = 0.40,
+    this.overlayOpacity = 0.25,
     this.applyBlur = true,
   });
 
@@ -417,8 +417,8 @@ class PremiumAuthBackground extends StatelessWidget {
     if (applyBlur) {
       image = ImageFiltered(
         imageFilter: ImageFilter.blur(
-          sigmaX: 4.0,
-          sigmaY: 4.0,
+          sigmaX: 2.0,
+          sigmaY: 2.0,
           tileMode: TileMode.clamp,
         ),
         child: image,
