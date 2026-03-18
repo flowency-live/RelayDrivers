@@ -4,7 +4,6 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/design_system/tokens/colors.dart';
 import '../../../../core/design_system/tokens/typography.dart';
 import '../../../../core/design_system/tokens/spacing.dart';
-import '../../../../core/design_system/foundations/glass.dart';
 
 /// Premium status info card with glass morphism
 /// Shows different messages based on driver status and provides
@@ -68,7 +67,7 @@ class StatusInfoCard extends StatelessWidget {
                 padding: const EdgeInsets.all(DesignSpacing.lg),
                 child: Text(
                   _getStatusMessage(status, company),
-                  style: DesignTypography.body.copyWith(
+                  style: DesignTypography.bodyMedium.copyWith(
                     color: DesignColors.textSecondary,
                   ),
                 ),
@@ -135,7 +134,7 @@ class StatusInfoCard extends StatelessWidget {
                 padding: const EdgeInsets.all(DesignSpacing.lg),
                 child: Text(
                   _getStatusMessage(status, company),
-                  style: DesignTypography.body.copyWith(
+                  style: DesignTypography.bodyMedium.copyWith(
                     color: DesignColors.lightTextSecondary,
                   ),
                 ),
