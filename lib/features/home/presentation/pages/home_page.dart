@@ -5,6 +5,7 @@ import '../../../auth/application/providers.dart';
 import '../../../auth/domain/models/driver_user.dart' as driver_user;
 import '../../../profile/application/profile_providers.dart';
 import '../../../notifications/presentation/widgets/notification_bell.dart';
+import '../../../notifications/application/notification_providers.dart';
 import '../../../onboarding/application/onboarding_providers.dart';
 import '../../../vehicles/application/vehicle_providers.dart';
 import '../../../documents/application/document_providers.dart';
