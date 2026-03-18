@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/auth/application/providers.dart';
-// REMOVED: driver_user.dart - no longer needed without onboarding logic
-// REMOVED: onboarding_providers.dart - async data doesn't belong in router
 import '../../features/auth/presentation/pages/biometric_unlock_page.dart';
 import '../../features/auth/presentation/pages/invite_entry_page.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
@@ -21,9 +19,21 @@ import '../../features/onboarding/presentation/pages/onboarding_wizard_page.dart
 import '../../features/face_verification/presentation/pages/face_registration_page.dart';
 import '../../features/profile/presentation/pages/my_operators_page.dart';
 import '../../features/documents/presentation/pages/share_document_page.dart';
+import '../../features/calendar/presentation/pages/calendar_page.dart';
+import '../navigation/app_shell.dart';
+import '../design_system/tokens/colors.dart';
+
+// Navigator keys for shell branches
+final _rootNavigatorKey = GlobalKey<NavigatorState>();
+final _homeNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'home');
+final _bookingsNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'bookings');
+final _earningsNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'earnings');
+final _calendarNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'calendar');
+final _profileNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'profile');
 
 /// App routes
 class AppRoutes {
+  // Auth routes (outside shell)
   static const String splash = '/';
   static const String inviteEntry = '/invite';
   static const String login = '/login';
@@ -31,37 +41,51 @@ class AppRoutes {
   static const String biometricUnlock = '/unlock';
   static const String register = '/register';
   static const String magicLink = '/auth/verify/:token';
-  static const String home = '/home';
-  static const String onboarding = '/onboarding';
-  static const String profile = '/profile';
-  static const String vehicles = '/vehicles';
-  static const String documents = '/documents';
-  static const String faceRegistration = '/face-registration';
-  static const String jobs = '/jobs';
-  static const String myOperators = '/my-operators';
-  static const String shareDocument = '/documents/share';
-  static const String notifications = '/notifications';
 
-  /// Helper to generate share document route with documentId
-  static String shareDocumentRoute(String documentId) => '/documents/$documentId/share';
+  // Main app routes (inside shell with bottom nav)
+  static const String app = '/app';
+  static const String home = '/app/home';
+  static const String bookings = '/app/bookings';
+  static const String bookingDetail = '/app/bookings/:bookingId';
+  static const String earnings = '/app/earnings';
+  static const String calendar = '/app/calendar';
+  static const String profile = '/app/profile';
+  static const String profileEdit = '/app/profile/edit';
+  static const String vehicles = '/app/profile/vehicles';
+  static const String vehicleDetail = '/app/profile/vehicles/:vrn';
+  static const String documents = '/app/profile/documents';
+  static const String shareDocument = '/app/profile/documents/:documentId/share';
+  static const String myOperators = '/app/profile/operators';
+  static const String notifications = '/app/profile/notifications';
+  static const String faceRegistration = '/app/profile/face-registration';
+
+  // Legacy routes (redirect to new structure)
+  static const String legacyHome = '/home';
+  static const String legacyProfile = '/profile';
+  static const String legacyVehicles = '/vehicles';
+  static const String legacyDocuments = '/documents';
+  static const String legacyJobs = '/jobs';
+  static const String onboarding = '/onboarding';
+
+  /// Helper to generate booking detail route
+  static String bookingDetailRoute(String bookingId) => '/app/bookings/$bookingId';
+
+  /// Helper to generate vehicle detail route
+  static String vehicleDetailRoute(String vrn) => '/app/profile/vehicles/$vrn';
+
+  /// Helper to generate share document route
+  static String shareDocumentRoute(String documentId) =>
+      '/app/profile/documents/$documentId/share';
 }
 
 /// App router provider
-///
-/// IMPORTANT: Router redirect logic ONLY uses synchronous state.
-/// Async data loading (profile, vehicles, documents) belongs in pages, not router.
-/// This prevents race conditions where router blocks waiting for API calls.
 final appRouterProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateProvider);
-  // REMOVED: isOnboardingCompleteProvider - it depends on 4 async API calls
-  // that haven't been made yet when user logs in, causing router to hang.
-  // Onboarding UI is handled by home page, not router redirects.
 
   return GoRouter(
-    // DO NOT set initialLocation - let GoRouter use the browser URL on web
+    navigatorKey: _rootNavigatorKey,
     debugLogDiagnostics: true,
     redirect: (context, state) {
-      // Extract auth state synchronously (no async providers!)
       final isAuthenticated = authState.maybeWhen(
         authenticated: (_) => true,
         orElse: () => false,
@@ -72,7 +96,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         orElse: () => false,
       );
 
-      // Check current location and query params
       final currentPath = state.matchedLocation;
       final hasInviteCode = state.uri.queryParameters.containsKey('code');
 
@@ -84,41 +107,46 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final isRegisterRoute = currentPath == AppRoutes.register;
       final isSplashRoute = currentPath == AppRoutes.splash;
       final isMagicLinkRoute = currentPath.startsWith('/auth/verify');
-      final isAuthRoute = isInviteRoute || isLoginRoute || isPhoneLoginRoute ||
-                          isBiometricRoute || isRegisterRoute || isMagicLinkRoute;
+      final isAuthRoute = isInviteRoute ||
+          isLoginRoute ||
+          isPhoneLoginRoute ||
+          isBiometricRoute ||
+          isRegisterRoute ||
+          isMagicLinkRoute;
 
       // CRITICAL: If we have an invite code in URL, NEVER redirect away
-      // Let the invite page handle it regardless of auth state
       if (isInviteRoute && hasInviteCode) {
-        return null; // Stay on invite page with the code
+        return null;
       }
 
-      // If still loading auth state, show splash (but we already handled invite+code above)
+      // If still loading auth state, show splash
       if (isLoading) {
         return isSplashRoute ? null : AppRoutes.splash;
       }
 
       // Not authenticated
       if (!isAuthenticated) {
-        // Allow access to auth pages without authentication
         if (isAuthRoute) return null;
-
-        // Redirect everything else to invite entry
         return AppRoutes.inviteEntry;
       }
 
-      // AUTHENTICATED - simple logic:
-      // - If on auth/splash page, go to home
-      // - Otherwise, allow navigation (home page handles onboarding UI)
+      // AUTHENTICATED
+      // Redirect legacy routes to new structure
+      if (currentPath == AppRoutes.legacyHome) return AppRoutes.home;
+      if (currentPath == AppRoutes.legacyProfile) return AppRoutes.profile;
+      if (currentPath == AppRoutes.legacyVehicles) return AppRoutes.vehicles;
+      if (currentPath == AppRoutes.legacyDocuments) return AppRoutes.documents;
+      if (currentPath == AppRoutes.legacyJobs) return AppRoutes.bookings;
+
+      // If on auth/splash page, go to app
       if (isAuthRoute || isSplashRoute) {
         return AppRoutes.home;
       }
 
-      // Allow all navigation for authenticated users
-      // Home page will show onboarding tiles if onboarding is incomplete
       return null;
     },
     routes: [
+      // Auth routes (outside shell)
       GoRoute(
         path: AppRoutes.splash,
         builder: (context, state) => const SplashPage(),
@@ -126,7 +154,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.inviteEntry,
         builder: (context, state) {
-          // Extract invite code from query parameter for deep linking
           final code = state.uri.queryParameters['code'];
           return InviteEntryPage(initialCode: code);
         },
@@ -154,59 +181,188 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           return MagicLinkPage(token: token);
         },
       ),
-      GoRoute(
-        path: AppRoutes.home,
-        builder: (context, state) => const HomePage(),
-      ),
+
+      // Onboarding wizard (outside shell, full screen)
       GoRoute(
         path: AppRoutes.onboarding,
         builder: (context, state) => const OnboardingWizardPage(),
       ),
+
+      // Main app with bottom navigation
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) {
+          return AppShell(navigationShell: navigationShell);
+        },
+        branches: [
+          // Tab 0: Home
+          StatefulShellBranch(
+            navigatorKey: _homeNavigatorKey,
+            routes: [
+              GoRoute(
+                path: AppRoutes.home,
+                builder: (context, state) => const HomePage(),
+              ),
+            ],
+          ),
+
+          // Tab 1: Bookings
+          StatefulShellBranch(
+            navigatorKey: _bookingsNavigatorKey,
+            routes: [
+              GoRoute(
+                path: AppRoutes.bookings,
+                builder: (context, state) => const _PlaceholderPage(
+                  title: 'Bookings',
+                  icon: Icons.list_alt_rounded,
+                  description: 'Your upcoming and past bookings',
+                ),
+                routes: [
+                  GoRoute(
+                    path: ':bookingId',
+                    builder: (context, state) {
+                      final bookingId = state.pathParameters['bookingId'] ?? '';
+                      return _PlaceholderPage(
+                        title: 'Booking Detail',
+                        icon: Icons.assignment_rounded,
+                        description: 'Booking: $bookingId',
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ],
+          ),
+
+          // Tab 2: Earnings
+          StatefulShellBranch(
+            navigatorKey: _earningsNavigatorKey,
+            routes: [
+              GoRoute(
+                path: AppRoutes.earnings,
+                builder: (context, state) => const _PlaceholderPage(
+                  title: 'Earnings',
+                  icon: Icons.account_balance_wallet_rounded,
+                  description: 'Track your earnings by period',
+                ),
+              ),
+            ],
+          ),
+
+          // Tab 3: Calendar
+          StatefulShellBranch(
+            navigatorKey: _calendarNavigatorKey,
+            routes: [
+              GoRoute(
+                path: AppRoutes.calendar,
+                builder: (context, state) => const CalendarPage(),
+              ),
+            ],
+          ),
+
+          // Tab 4: Profile
+          StatefulShellBranch(
+            navigatorKey: _profileNavigatorKey,
+            routes: [
+              GoRoute(
+                path: AppRoutes.profile,
+                builder: (context, state) => const ProfilePage(),
+                routes: [
+                  GoRoute(
+                    path: 'edit',
+                    builder: (context, state) => const ProfilePage(),
+                  ),
+                  GoRoute(
+                    path: 'vehicles',
+                    builder: (context, state) => const VehiclesPage(),
+                    routes: [
+                      GoRoute(
+                        path: ':vrn',
+                        builder: (context, state) {
+                          final vrn = state.pathParameters['vrn'] ?? '';
+                          return VehicleDetailPage(vrn: vrn);
+                        },
+                      ),
+                    ],
+                  ),
+                  GoRoute(
+                    path: 'documents',
+                    builder: (context, state) => const DocumentsPage(),
+                    routes: [
+                      GoRoute(
+                        path: ':documentId/share',
+                        builder: (context, state) {
+                          final documentId =
+                              state.pathParameters['documentId'] ?? '';
+                          return ShareDocumentPage(documentId: documentId);
+                        },
+                      ),
+                    ],
+                  ),
+                  GoRoute(
+                    path: 'operators',
+                    builder: (context, state) => const MyOperatorsPage(),
+                  ),
+                  GoRoute(
+                    path: 'notifications',
+                    builder: (context, state) => const NotificationsPage(),
+                  ),
+                  GoRoute(
+                    path: 'face-registration',
+                    builder: (context, state) => const FaceRegistrationPage(),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+
+      // Legacy route redirects (handled by redirect logic above, but keep as fallback)
       GoRoute(
-        path: AppRoutes.profile,
-        builder: (context, state) => const ProfilePage(),
+        path: AppRoutes.legacyHome,
+        redirect: (context, state) => AppRoutes.home,
       ),
       GoRoute(
-        path: AppRoutes.vehicles,
-        builder: (context, state) => const VehiclesPage(),
+        path: AppRoutes.legacyProfile,
+        redirect: (context, state) => AppRoutes.profile,
+      ),
+      GoRoute(
+        path: AppRoutes.legacyVehicles,
+        redirect: (context, state) => AppRoutes.vehicles,
+      ),
+      GoRoute(
+        path: AppRoutes.legacyDocuments,
+        redirect: (context, state) => AppRoutes.documents,
+      ),
+      GoRoute(
+        path: AppRoutes.legacyJobs,
+        redirect: (context, state) => AppRoutes.bookings,
       ),
       GoRoute(
         path: '/vehicles/:vrn',
-        builder: (context, state) {
+        redirect: (context, state) {
           final vrn = state.pathParameters['vrn'] ?? '';
-          return VehicleDetailPage(vrn: vrn);
+          return AppRoutes.vehicleDetailRoute(vrn);
         },
-      ),
-      GoRoute(
-        path: AppRoutes.notifications,
-        builder: (context, state) => const NotificationsPage(),
-      ),
-      GoRoute(
-        path: AppRoutes.documents,
-        builder: (context, state) => const DocumentsPage(),
-      ),
-      GoRoute(
-        path: AppRoutes.faceRegistration,
-        builder: (context, state) => const FaceRegistrationPage(),
-      ),
-      GoRoute(
-        path: AppRoutes.jobs,
-        builder: (context, state) => const _PlaceholderPage(
-          title: 'Jobs',
-          icon: Icons.work,
-          description: 'Job management coming soon',
-        ),
-      ),
-      GoRoute(
-        path: AppRoutes.myOperators,
-        builder: (context, state) => const MyOperatorsPage(),
       ),
       GoRoute(
         path: '/documents/:documentId/share',
-        builder: (context, state) {
+        redirect: (context, state) {
           final documentId = state.pathParameters['documentId'] ?? '';
-          return ShareDocumentPage(documentId: documentId);
+          return AppRoutes.shareDocumentRoute(documentId);
         },
+      ),
+      GoRoute(
+        path: '/my-operators',
+        redirect: (context, state) => AppRoutes.myOperators,
+      ),
+      GoRoute(
+        path: '/notifications',
+        redirect: (context, state) => AppRoutes.notifications,
+      ),
+      GoRoute(
+        path: '/face-registration',
+        redirect: (context, state) => AppRoutes.faceRegistration,
       ),
     ],
     errorBuilder: (context, state) => Scaffold(
@@ -231,8 +387,15 @@ class _PlaceholderPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
+    final isDark = brightness == Brightness.dark;
+
     return Scaffold(
-      appBar: AppBar(title: Text(title)),
+      backgroundColor: Colors.transparent,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        title: Text(title),
+      ),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -240,30 +403,32 @@ class _PlaceholderPage extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primary.withAlpha(25),
+                color: DesignColors.accent.withOpacity(0.15),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 icon,
                 size: 64,
-                color: Theme.of(context).colorScheme.primary,
+                color: DesignColors.accent,
               ),
             ),
             const SizedBox(height: 24),
             Text(
               title,
-              style: Theme.of(context).textTheme.headlineMedium,
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    color: isDark
+                        ? DesignColors.textPrimary
+                        : DesignColors.lightTextPrimary,
+                  ),
             ),
             const SizedBox(height: 8),
             Text(
               description,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 32),
-            OutlinedButton.icon(
-              onPressed: () => Navigator.of(context).pop(),
-              icon: const Icon(Icons.arrow_back),
-              label: const Text('Go Back'),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: isDark
+                        ? DesignColors.textSecondary
+                        : DesignColors.lightTextSecondary,
+                  ),
             ),
           ],
         ),

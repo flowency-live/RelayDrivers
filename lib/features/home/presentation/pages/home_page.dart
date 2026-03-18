@@ -8,7 +8,13 @@ import '../../../notifications/presentation/widgets/notification_bell.dart';
 import '../../../onboarding/application/onboarding_providers.dart';
 import '../../../../config/environment.dart';
 import '../../../../core/router/app_router.dart';
-import '../../../../core/theme/relay_colors.dart';
+import '../../../../core/design_system/tokens/colors.dart';
+import '../../../../core/design_system/tokens/spacing.dart';
+import '../../../../core/design_system/components/headers/greeting_header.dart';
+import '../../../../core/design_system/components/controls/duty_toggle.dart';
+import '../../../../core/design_system/components/cards/job_card.dart';
+import '../../../../core/design_system/components/cards/schedule_card.dart';
+import '../../../../core/design_system/components/cards/stat_card.dart';
 import '../../../../core/theme/theme_provider.dart';
 import '../../../../core/widgets/pwa_install_banner.dart';
 import '../widgets/home_action_tile.dart';
@@ -16,6 +22,10 @@ import '../widgets/operator_selector.dart';
 import '../widgets/status_info_card.dart';
 
 /// Home page - main dashboard for drivers
+///
+/// Two modes:
+/// 1. Onboarding mode: Shows section tiles with progress
+/// 2. Active driver mode: Shows duty toggle, current job, schedule, earnings
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
 
@@ -24,6 +34,9 @@ class HomePage extends ConsumerStatefulWidget {
 }
 
 class _HomePageState extends ConsumerState<HomePage> {
+  bool _isOnDuty = false;
+  bool _isDutyLoading = false;
+
   /// Get display status from user model (handles both legacy and new architecture)
   String _getDisplayStatus(driver_user.DriverUser user) {
     // New architecture: derive status from operators
@@ -35,6 +48,24 @@ class _HomePageState extends ConsumerState<HomePage> {
     }
     // Legacy fallback
     return user.status?.value ?? 'pending';
+  }
+
+  /// Check if user is in active driver mode (completed onboarding)
+  bool _isActiveDriver(driver_user.DriverUser user) {
+    return user.hasActiveOperators && !user.isOnboarding;
+  }
+
+  void _toggleDuty() {
+    setState(() => _isDutyLoading = true);
+    // Simulate API call
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) {
+        setState(() {
+          _isOnDuty = !_isOnDuty;
+          _isDutyLoading = false;
+        });
+      }
+    });
   }
 
   @override
@@ -49,119 +80,226 @@ class _HomePageState extends ConsumerState<HomePage> {
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider);
-    final authService = ref.watch(authServiceProvider);
     final profile = ref.watch(currentProfileProvider);
     final onboardingProgress = ref.watch(onboardingProgressProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     if (user == null) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+      return Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Center(
+          child: CircularProgressIndicator(
+            color: DesignColors.accent,
+          ),
+        ),
       );
     }
 
+    final isActiveDriver = _isActiveDriver(user);
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Relay Drivers'),
-        actions: [
-          // Theme toggle
-          _ThemeToggleButton(),
-          const NotificationBellWithPolling(),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () async {
-              await ref.read(authStateProvider.notifier).logout();
-              if (context.mounted) {
-                context.go(AppRoutes.phoneLogin);
-              }
-            },
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // PWA Install Banner
-            const PwaInstallBanner(),
-
-            // Operator Selector (only shows if driver has multiple operators)
-            const OperatorSelector(),
-
-            // Greeting
-            Text(
-              authService.getGreeting(user),
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-            // Show tenant company name if available
-            if (profile?.tenant?.companyName != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                'Driving with ${profile!.tenant!.companyName}',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: isDark
-                          ? RelayColors.darkTextSecondary
-                          : RelayColors.lightTextSecondary,
-                    ),
-              ),
-            ],
-            const SizedBox(height: 24),
-
-            // Section tiles with progress rings
-            HomeActionTile(
-              progress: onboardingProgress.profileProgress,
-              accentColor: RelayColors.sectionProfile,
-              icon: Icons.person_outline,
-              onTap: () => context.push(AppRoutes.profile),
-            ),
-            const SizedBox(height: 12),
-            HomeActionTile(
-              progress: onboardingProgress.vehicleProgress,
-              accentColor: RelayColors.sectionVehicles,
-              icon: Icons.directions_car_outlined,
-              onTap: () => context.push(AppRoutes.vehicles),
-            ),
-            const SizedBox(height: 12),
-            HomeActionTile(
-              progress: onboardingProgress.documentProgress,
-              accentColor: RelayColors.sectionDocuments,
-              icon: Icons.description_outlined,
-              onTap: () => context.push(AppRoutes.documents),
-            ),
-
-            const SizedBox(height: 32),
-
-            // Status card with tenant contact info
-            StatusInfoCard(
-              status: _getDisplayStatus(user),
-              companyName: profile?.tenant?.companyName,
-              supportEmail: profile?.tenant?.supportEmail,
-              supportPhone: profile?.tenant?.supportPhone,
-              onMessageTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Support chat coming soon'),
+      backgroundColor: Colors.transparent,
+      body: SafeArea(
+        bottom: false,
+        child: CustomScrollView(
+          slivers: [
+            // App bar with minimal actions
+            SliverAppBar(
+              backgroundColor: Colors.transparent,
+              floating: true,
+              snap: true,
+              elevation: 0,
+              title: isActiveDriver ? null : const Text('Relay Drivers'),
+              actions: [
+                _ThemeToggleButton(),
+                const NotificationBellWithPolling(),
+                if (!isActiveDriver)
+                  IconButton(
+                    icon: const Icon(Icons.logout),
+                    onPressed: () async {
+                      await ref.read(authStateProvider.notifier).logout();
+                      if (context.mounted) {
+                        context.go(AppRoutes.phoneLogin);
+                      }
+                    },
                   ),
-                );
-              },
+              ],
             ),
 
-            const SizedBox(height: 24),
+            // Main content
+            SliverToBoxAdapter(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // PWA Install Banner
+                  const PwaInstallBanner(),
 
-            // Version number (centered)
-            Center(
-              child: Text(
-                'v$appVersion',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: isDark
-                          ? RelayColors.darkTextMuted
-                          : RelayColors.lightTextMuted,
+                  // Operator Selector (only shows if driver has multiple operators)
+                  const OperatorSelector(),
+
+                  // Greeting header
+                  GreetingHeader(
+                    firstName: user.firstName,
+                    operatorName: profile?.tenant?.companyName,
+                    onNotificationsTap: () =>
+                        context.push(AppRoutes.notifications),
+                  ),
+
+                  const SizedBox(height: DesignSpacing.md),
+
+                  // Show different content based on status
+                  if (isActiveDriver)
+                    _buildActiveDriverView(context, isDark)
+                  else
+                    _buildOnboardingView(context, user, profile, onboardingProgress, isDark),
+
+                  const SizedBox(height: DesignSpacing.xl),
+
+                  // Version number
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: DesignSpacing.lg),
+                      child: Text(
+                        'v$appVersion',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isDark
+                              ? DesignColors.textMuted
+                              : DesignColors.lightTextMuted,
+                        ),
+                      ),
                     ),
+                  ),
+                ],
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// Active driver view - duty toggle, current job, schedule, earnings
+  Widget _buildActiveDriverView(BuildContext context, bool isDark) {
+    return Column(
+      children: [
+        // Duty toggle
+        DutyToggle(
+          isOnDuty: _isOnDuty,
+          isLoading: _isDutyLoading,
+          onToggle: _toggleDuty,
+        ),
+
+        const SizedBox(height: DesignSpacing.xl),
+
+        // Current job or empty state
+        // TODO: Wire to actual job data
+        if (_isOnDuty)
+          CurrentJobCard(
+            customerName: 'Edward Blake',
+            customerCompany: 'BoardWalk Ltd',
+            pickupAddress: '74 Duke Street, Soho',
+            pickupTime: 'Pickup in 7 min',
+            dropoffAddress: 'Hilton London Metropole',
+            dropoffTime: '12 min',
+            onCallTap: () {},
+            onMessageTap: () {},
+            onCardTap: () => context.push(AppRoutes.bookings),
+          )
+        else
+          const NoCurrentJobCard(),
+
+        const SizedBox(height: DesignSpacing.lg),
+
+        // Schedule preview
+        // TODO: Wire to actual schedule data
+        SchedulePreviewCard(
+          items: [
+            ScheduleItemData(
+              time: '04:45 pm',
+              location: 'Heathrow Airport',
+              price: '£85',
+            ),
+            ScheduleItemData(
+              time: '07:00 pm',
+              location: 'Paddington Station',
+              price: '£42',
+            ),
+            ScheduleItemData(
+              time: '09:30 am',
+              location: 'Hackney Central',
+              price: '£35',
+            ),
+          ],
+          onViewAll: () => context.push(AppRoutes.bookings),
+        ),
+
+        const SizedBox(height: DesignSpacing.lg),
+
+        // Earnings today
+        // TODO: Wire to actual earnings data
+        EarningsTodayCard(
+          amount: '£154.20',
+          completedJobs: 3,
+          trend: '+12%',
+          isTrendPositive: true,
+          onTap: () => context.push(AppRoutes.earnings),
+        ),
+      ],
+    );
+  }
+
+  /// Onboarding view - section tiles with progress
+  Widget _buildOnboardingView(
+    BuildContext context,
+    driver_user.DriverUser user,
+    dynamic profile,
+    dynamic onboardingProgress,
+    bool isDark,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: DesignSpacing.lg),
+      child: Column(
+        children: [
+          // Section tiles with progress rings
+          HomeActionTile(
+            progress: onboardingProgress.profileProgress,
+            accentColor: DesignColors.profileAccent,
+            icon: Icons.person_outline,
+            onTap: () => context.push(AppRoutes.profile),
+          ),
+          const SizedBox(height: 12),
+          HomeActionTile(
+            progress: onboardingProgress.vehicleProgress,
+            accentColor: DesignColors.vehicleAccent,
+            icon: Icons.directions_car_outlined,
+            onTap: () => context.push(AppRoutes.vehicles),
+          ),
+          const SizedBox(height: 12),
+          HomeActionTile(
+            progress: onboardingProgress.documentProgress,
+            accentColor: DesignColors.documentAccent,
+            icon: Icons.description_outlined,
+            onTap: () => context.push(AppRoutes.documents),
+          ),
+
+          const SizedBox(height: 32),
+
+          // Status card with tenant contact info
+          StatusInfoCard(
+            status: _getDisplayStatus(user),
+            companyName: profile?.tenant?.companyName,
+            supportEmail: profile?.tenant?.supportEmail,
+            supportPhone: profile?.tenant?.supportPhone,
+            onMessageTap: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Support chat coming soon'),
+                ),
+              );
+            },
+          ),
+        ],
       ),
     );
   }
@@ -172,6 +310,7 @@ class _ThemeToggleButton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeModeProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     IconData icon;
     String tooltip;
@@ -189,7 +328,12 @@ class _ThemeToggleButton extends ConsumerWidget {
     }
 
     return IconButton(
-      icon: Icon(icon),
+      icon: Icon(
+        icon,
+        color: isDark
+            ? DesignColors.textSecondary
+            : DesignColors.lightTextSecondary,
+      ),
       tooltip: tooltip,
       onPressed: () {
         // Cycle through: system -> light -> dark -> system

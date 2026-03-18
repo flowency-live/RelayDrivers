@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
 import 'core/router/app_router.dart';
-import 'core/theme/app_theme.dart';
+import 'core/design_system/theme.dart';
 import 'core/theme/theme_provider.dart';
 import 'core/services/pwa_install_service.dart';
 
@@ -72,8 +72,8 @@ class _RelayDriversAppState extends ConsumerState<RelayDriversApp>
     return MaterialApp.router(
       title: 'Relay Drivers',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
+      theme: DesignTheme.light,
+      darkTheme: DesignTheme.dark,
       themeMode: _getThemeMode(themeMode),
       routerConfig: router,
     );

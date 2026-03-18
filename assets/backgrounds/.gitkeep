@@ -1,0 +1,18 @@
+# Background Images Required
+
+Place UK city night images here (WebP format, 1080px wide minimum):
+
+- manchester_night.webp (default)
+- leeds_night.webp
+- portsmouth_night.webp
+- birmingham_night.webp
+- edinburgh_night.webp
+- bristol_night.webp
+- newcastle_night.webp
+
+Pre-process images:
+- Reduce saturation 30-40%
+- Add subtle blue tint
+- Ensure dark, moody feel (not bright/colorful)
+
+Rotates daily for variety.
