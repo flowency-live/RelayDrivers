@@ -113,13 +113,40 @@ class _HomePageState extends ConsumerState<HomePage> {
               floating: true,
               snap: true,
               elevation: 0,
-              title: isActiveDriver ? null : const Text('Relay Drivers'),
+              title: isActiveDriver
+                  ? null
+                  : Text(
+                      'Relay Drivers',
+                      style: TextStyle(
+                        color: isDark ? DesignColors.textPrimary : Colors.white,
+                        fontWeight: FontWeight.w600,
+                        shadows: isDark
+                            ? null
+                            : [
+                                Shadow(
+                                  color: Colors.black.withOpacity(0.5),
+                                  blurRadius: 6,
+                                ),
+                              ],
+                      ),
+                    ),
               actions: [
-                _ThemeToggleButton(),
-                const NotificationBellWithPolling(),
+                _ThemeToggleButton(isDark: isDark),
+                _StyledNotificationBell(isDark: isDark),
                 if (!isActiveDriver)
                   IconButton(
-                    icon: const Icon(Icons.logout),
+                    icon: Icon(
+                      Icons.logout,
+                      color: isDark ? DesignColors.textSecondary : Colors.white,
+                      shadows: isDark
+                          ? null
+                          : [
+                              Shadow(
+                                color: Colors.black.withOpacity(0.5),
+                                blurRadius: 6,
+                              ),
+                            ],
+                    ),
                     onPressed: () async {
                       await ref.read(authStateProvider.notifier).logout();
                       if (context.mounted) {
@@ -314,12 +341,15 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 }
 
-/// Theme toggle button for app bar
+/// Theme toggle button for app bar with proper contrast
 class _ThemeToggleButton extends ConsumerWidget {
+  final bool isDark;
+
+  const _ThemeToggleButton({required this.isDark});
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeModeProvider);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     IconData icon;
     String tooltip;
@@ -339,9 +369,15 @@ class _ThemeToggleButton extends ConsumerWidget {
     return IconButton(
       icon: Icon(
         icon,
-        color: isDark
-            ? DesignColors.textSecondary
-            : DesignColors.lightTextSecondary,
+        color: isDark ? DesignColors.textSecondary : Colors.white,
+        shadows: isDark
+            ? null
+            : [
+                Shadow(
+                  color: Colors.black.withOpacity(0.5),
+                  blurRadius: 6,
+                ),
+              ],
       ),
       tooltip: tooltip,
       onPressed: () {
@@ -353,6 +389,44 @@ class _ThemeToggleButton extends ConsumerWidget {
         };
         ref.read(themeModeProvider.notifier).setThemeMode(next);
       },
+    );
+  }
+}
+
+/// Styled notification bell with proper contrast
+class _StyledNotificationBell extends ConsumerWidget {
+  final bool isDark;
+
+  const _StyledNotificationBell({required this.isDark});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final unreadCount = ref.watch(unreadCountProvider);
+
+    return IconButton(
+      icon: Badge(
+        isLabelVisible: unreadCount > 0,
+        label: Text(
+          unreadCount > 99 ? '99+' : unreadCount.toString(),
+          style: const TextStyle(fontSize: 10),
+        ),
+        child: Icon(
+          Icons.notifications_outlined,
+          color: isDark ? DesignColors.textSecondary : Colors.white,
+          shadows: isDark
+              ? null
+              : [
+                  Shadow(
+                    color: Colors.black.withOpacity(0.5),
+                    blurRadius: 6,
+                  ),
+                ],
+        ),
+      ),
+      onPressed: () {
+        context.push('/notifications');
+      },
+      tooltip: 'Notifications',
     );
   }
 }

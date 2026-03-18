@@ -248,8 +248,8 @@ class StatusInfoCard extends StatelessWidget {
             'Need help? Contact $company:',
             style: DesignTypography.labelSmall.copyWith(
               color: isDark
-                  ? DesignColors.textMuted
-                  : DesignColors.lightTextMuted,
+                  ? DesignColors.textSecondary
+                  : DesignColors.lightTextPrimary.withOpacity(0.7),
             ),
           ),
           const SizedBox(height: DesignSpacing.md),
