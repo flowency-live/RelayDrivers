@@ -2,7 +2,7 @@ name: relay_drivers
 description: "Relay Drivers - Driver onboarding and job management for private hire operators"
 publish_to: 'none'
 
-version: 1.0.28+29
+version: 1.0.29+30
 
 environment:
   sdk: ^3.11.1
@@ -37,6 +37,9 @@ dependencies:
 
   # URL Launcher for external links
   url_launcher: ^6.2.0
+
+  # BlinkID for driving licence scanning
+  blinkid_flutter: ^7.6.1
 
 dev_dependencies:
   flutter_test:

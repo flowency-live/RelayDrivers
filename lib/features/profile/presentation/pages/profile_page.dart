@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,6 +13,7 @@ import '../../../onboarding/domain/models/uk_address.dart';
 import '../../../onboarding/presentation/widgets/address_autocomplete_field.dart';
 import '../../application/profile_providers.dart';
 import '../../domain/models/driver_profile.dart';
+import '../../infrastructure/blinkid_scanner_service.dart';
 import '../widgets/editable_profile_field.dart';
 import '../widgets/locked_profile_field.dart';
 
@@ -682,6 +684,7 @@ class _UkDrivingLicenceCardState extends State<_UkDrivingLicenceCard> {
   bool _isEditingCheckCode = false;
   bool _isSavingLicence = false;
   bool _isSavingCheckCode = false;
+  bool _isScanning = false;
   late TextEditingController _licenceController;
   late TextEditingController _checkCodeController;
   String? _licenceError;
@@ -888,6 +891,12 @@ class _UkDrivingLicenceCardState extends State<_UkDrivingLicenceCard> {
                     ),
                     const SizedBox(height: 4),
                     _buildLicenceNumberInput(),
+
+                    // Scan button - only show on mobile
+                    if (!kIsWeb) ...[
+                      const SizedBox(height: 12),
+                      _buildScanButton(),
+                    ],
 
                     const SizedBox(height: 16),
 
@@ -1221,6 +1230,124 @@ class _UkDrivingLicenceCardState extends State<_UkDrivingLicenceCard> {
               Icons.edit,
               size: 16,
               color: const Color(0xFF2D1F3D).withAlpha(100),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Scan a driving licence using BlinkID
+  Future<void> _scanLicence() async {
+    if (_isScanning) return;
+
+    // Check if scanning is available
+    if (kIsWeb || !BlinkIdScannerService.isAvailable) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Licence scanning is only available on mobile devices'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+      return;
+    }
+
+    setState(() => _isScanning = true);
+
+    try {
+      final result = await BlinkIdScannerService.scanDrivingLicence();
+
+      if (result != null && result.hasLicenceNumber && mounted) {
+        // Update the licence number
+        _licenceController.text = result.licenceNumber!;
+
+        // Auto-save the scanned licence number
+        final success = await widget.onLicenceNumberSave(result.licenceNumber);
+
+        if (mounted) {
+          if (success) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Licence number captured successfully'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Failed to save licence number'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      } else if (result == null && mounted) {
+        // Scan was cancelled or failed
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Scan cancelled or no licence detected'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error scanning licence: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isScanning = false);
+      }
+    }
+  }
+
+  /// Build the scan licence button
+  Widget _buildScanButton() {
+    return GestureDetector(
+      onTap: _isScanning ? null : _scanLicence,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: const Color(0xFF2D1F3D).withAlpha(_isScanning ? 20 : 40),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: const Color(0xFF2D1F3D).withAlpha(80),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (_isScanning)
+              const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2D1F3D)),
+                ),
+              )
+            else
+              const Icon(
+                Icons.camera_alt,
+                size: 18,
+                color: Color(0xFF2D1F3D),
+              ),
+            const SizedBox(width: 8),
+            Text(
+              _isScanning ? 'Scanning...' : 'Scan Licence',
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF2D1F3D),
+              ),
             ),
           ],
         ),
