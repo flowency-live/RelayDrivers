@@ -42,8 +42,22 @@ class EnvironmentConfig {
   bool get isProd => environment == Environment.prod;
 }
 
-/// Current environment - set via build configuration
-const currentEnvironment = EnvironmentConfig.dev;
+/// Selected environment name, injected at build time via
+/// `--dart-define=ENVIRONMENT=dev|staging|prod`.
+///
+/// Defaults to **prod** so that a release build with no explicit flavor ships
+/// production configuration (logging off, no tenant-spoof header). Local dev
+/// and CI must pass `--dart-define=ENVIRONMENT=dev` (or staging) explicitly.
+const String _environmentName =
+    String.fromEnvironment('ENVIRONMENT', defaultValue: 'prod');
+
+/// Current environment - resolved from the build-time flavor. Remains a
+/// compile-time constant so it can be tree-shaken and used in const contexts.
+const EnvironmentConfig currentEnvironment = _environmentName == 'dev'
+    ? EnvironmentConfig.dev
+    : _environmentName == 'staging'
+        ? EnvironmentConfig.staging
+        : EnvironmentConfig.prod;
 
 /// App version - injected via --dart-define=APP_VERSION at build time
 /// Falls back to version string for local development

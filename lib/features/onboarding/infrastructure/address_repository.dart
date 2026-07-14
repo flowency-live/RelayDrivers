@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import '../../../core/utils/app_logger.dart';
 import '../domain/models/uk_address.dart';
 import '../domain/services/address_service.dart';
 
@@ -57,7 +58,7 @@ class AddressRepository {
     } on DioException catch (e) {
       // Log error but don't throw - graceful degradation
       // ignore: avoid_print
-      print('Address autocomplete error: ${e.message}');
+      AppLogger.debug('Address autocomplete error: ${e.message}');
       return [];
     }
   }
@@ -80,7 +81,7 @@ class AddressRepository {
     } on DioException catch (e) {
       // Log error but don't throw
       // ignore: avoid_print
-      print('Address lookup error: ${e.message}');
+      AppLogger.debug('Address lookup error: ${e.message}');
       return null;
     }
   }

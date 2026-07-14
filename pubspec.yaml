@@ -41,6 +41,14 @@ dependencies:
   # BlinkID for driving licence scanning
   blinkid_flutter: ^7.6.1
 
+  # Push notifications (Firebase Cloud Messaging).
+  # Requires platform Firebase config files - see FIREBASE_SETUP.md.
+  firebase_core: ^3.6.0
+  firebase_messaging: ^15.1.3
+
+  # GPS / location for live driver tracking while a job is en_route/arrived.
+  geolocator: ^13.0.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -95,6 +95,39 @@ class AvailabilityRepository {
     );
   }
 
+  /// Set the driver's on/off-duty state for today via the availability API.
+  ///
+  /// There is no dedicated real-time "presence" endpoint on the backend, so
+  /// duty state is modelled as an all-day availability block for the current
+  /// date: on-duty => available=true, off-duty => available=false. This reuses
+  /// the existing PUT /driver/availability contract.
+  Future<void> setDutyForToday(bool onDuty) async {
+    final today = _formatDate(DateTime.now());
+    await saveAvailabilityBlock(
+      date: today,
+      startTime: '00:00',
+      endTime: '23:59',
+      available: onDuty,
+      note: onDuty ? 'On duty' : 'Off duty',
+    );
+  }
+
+  /// Derive whether the driver is currently on duty from today's availability.
+  ///
+  /// Returns true if today has an all-day block marked available; false if it
+  /// has an all-day block marked unavailable; otherwise falls back to whether
+  /// today is a working day in the default pattern.
+  Future<bool> getDutyForToday() async {
+    final now = DateTime.now();
+    final today = _formatDate(now);
+    final response = await getAvailability(startDate: today, endDate: today);
+    final todayBlocks = response.blocks.where((b) => b.isForDate(now));
+    for (final block in todayBlocks) {
+      if (block.isAllDay) return block.available;
+    }
+    return response.defaultPattern.isWorkingDay(now);
+  }
+
   /// Delete an availability block
   ///
   /// Note: The API currently doesn't have a delete endpoint.

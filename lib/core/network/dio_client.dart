@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../config/api_config.dart';
 import '../../config/environment.dart';
+import '../utils/app_logger.dart';
 
 /// Callback for when authentication is invalidated (401 with no refresh)
 typedef AuthInvalidatedCallback = void Function();
@@ -61,7 +62,7 @@ class DioClient {
     RequestInterceptorHandler handler,
   ) async {
     final token = await _secureStorage.read(key: accessTokenKey);
-    print('[DioClient] _attachToken for ${options.path}: token=${token != null ? 'present (${token.length} chars)' : 'NULL'}, lastSave=${_lastTokenSaveTime?.toIso8601String() ?? 'never'}');
+    AppLogger.debug('[DioClient] _attachToken for ${options.path}: token=${token != null ? 'present (${token.length} chars)' : 'NULL'}, lastSave=${_lastTokenSaveTime?.toIso8601String() ?? 'never'}');
     if (token != null) {
       options.headers['Authorization'] = 'Bearer $token';
     }
@@ -82,7 +83,7 @@ class DioClient {
       final requestKey =
           '${error.requestOptions.method}:${error.requestOptions.path}';
 
-      print('[DioClient] 401 on $requestKey, lastSave=${_lastTokenSaveTime?.toIso8601String() ?? 'never'}, alreadyRetried=${_retriedRequests.contains(requestKey)}');
+      AppLogger.debug('[DioClient] 401 on $requestKey, lastSave=${_lastTokenSaveTime?.toIso8601String() ?? 'never'}, alreadyRetried=${_retriedRequests.contains(requestKey)}');
 
       // Check if we're within the grace period after a token save.
       // On web, secure storage writes are async and may not be immediately readable.
@@ -90,26 +91,26 @@ class DioClient {
       if (_lastTokenSaveTime != null &&
           !_retriedRequests.contains(requestKey)) {
         final timeSinceSave = DateTime.now().difference(_lastTokenSaveTime!);
-        print('[DioClient] Grace period check: timeSinceSave=${timeSinceSave.inMilliseconds}ms, gracePeriod=${_tokenSaveGracePeriod.inMilliseconds}ms');
+        AppLogger.debug('[DioClient] Grace period check: timeSinceSave=${timeSinceSave.inMilliseconds}ms, gracePeriod=${_tokenSaveGracePeriod.inMilliseconds}ms');
         if (timeSinceSave < _tokenSaveGracePeriod) {
           // Within grace period - retry the request instead of invalidating
           // This handles the race condition where API calls happen before
           // the token write is fully propagated on web platform
           try {
             final token = await _secureStorage.read(key: accessTokenKey);
-            print('[DioClient] Retry read token: ${token != null ? 'present' : 'NULL'}');
+            AppLogger.debug('[DioClient] Retry read token: ${token != null ? 'present' : 'NULL'}');
             if (token != null) {
               // Mark as retried to prevent infinite loop
               _retriedRequests.add(requestKey);
               // Token exists, retry the request
-              print('[DioClient] Retrying $requestKey with token');
+              AppLogger.debug('[DioClient] Retrying $requestKey with token');
               final retryResponse = await _retry(error.requestOptions);
               _retriedRequests.remove(requestKey);
               return handler.resolve(retryResponse);
             }
           } catch (e) {
             // Retry failed, clean up and continue with normal 401 handling
-            print('[DioClient] Retry failed for $requestKey: $e');
+            AppLogger.debug('[DioClient] Retry failed for $requestKey: $e');
             _retriedRequests.remove(requestKey);
           }
         }
@@ -156,7 +157,7 @@ class DioClient {
         refreshDio.options.headers['X-Tenant-Id'] = tenantId;
       }
 
-      print('[DioClient] Attempting token refresh...');
+      AppLogger.debug('[DioClient] Attempting token refresh...');
       final response = await refreshDio.post(
         ApiConfig.authRefresh,
         data: {'refreshToken': refreshToken},
@@ -169,19 +170,19 @@ class DioClient {
 
         if (newAccessToken != null) {
           await _secureStorage.write(key: accessTokenKey, value: newAccessToken);
-          print('[DioClient] Token refresh successful - new access token stored');
+          AppLogger.debug('[DioClient] Token refresh successful - new access token stored');
         }
         if (newRefreshToken != null) {
           await _secureStorage.write(key: refreshTokenKey, value: newRefreshToken);
-          print('[DioClient] New refresh token stored');
+          AppLogger.debug('[DioClient] New refresh token stored');
         }
         // Update the last token save time so grace period tracking works
         _lastTokenSaveTime = DateTime.now();
         return true;
       }
-      print('[DioClient] Token refresh failed: status=${response.statusCode}, success=${response.data['success']}');
+      AppLogger.debug('[DioClient] Token refresh failed: status=${response.statusCode}, success=${response.data['success']}');
     } catch (e) {
-      print('[DioClient] Token refresh error: $e');
+      AppLogger.debug('[DioClient] Token refresh error: $e');
     }
     return false;
   }
@@ -218,10 +219,10 @@ class DioClient {
     // On web platform, secure storage writes may need a brief moment to propagate.
     // Verify the write was successful by reading back.
     final verifyToken = await _secureStorage.read(key: accessTokenKey);
-    print('[DioClient] saveTokens: wrote token, verify=${verifyToken != null ? 'present (${verifyToken.length} chars)' : 'NULL'}');
+    AppLogger.debug('[DioClient] saveTokens: wrote token, verify=${verifyToken != null ? 'present (${verifyToken.length} chars)' : 'NULL'}');
     if (verifyToken != accessToken) {
       // If verification fails, retry the write
-      print('[DioClient] Token verification mismatch, retrying write');
+      AppLogger.debug('[DioClient] Token verification mismatch, retrying write');
       await _secureStorage.write(key: accessTokenKey, value: accessToken);
     }
   }
@@ -235,7 +236,7 @@ class DioClient {
 
   Future<bool> hasValidToken() async {
     final token = await _secureStorage.read(key: accessTokenKey);
-    print('[DioClient] hasValidToken: token=${token != null ? 'present (${token.length} chars)' : 'NULL'}');
+    AppLogger.debug('[DioClient] hasValidToken: token=${token != null ? 'present (${token.length} chars)' : 'NULL'}');
     return token != null;
   }
 

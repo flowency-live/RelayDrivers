@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/dio_client.dart';
+import '../../../core/utils/app_logger.dart';
 import '../domain/models/auth_state.dart';
 import '../domain/models/driver_user.dart';
 import '../domain/models/invite_models.dart';
@@ -42,33 +43,33 @@ class AuthNotifier extends StateNotifier<AuthState> {
   /// Check existing session on app start
   Future<void> checkSession() async {
     state = const AuthLoading();
-    print('[AuthNotifier] checkSession: starting session check');
+    AppLogger.debug('[AuthNotifier] checkSession: starting session check');
 
     try {
       final hasToken = await _repository.hasValidToken();
-      print('[AuthNotifier] checkSession: hasToken=$hasToken');
+      AppLogger.debug('[AuthNotifier] checkSession: hasToken=$hasToken');
       if (!hasToken) {
-        print('[AuthNotifier] checkSession: no token found, setting unauthenticated');
+        AppLogger.debug('[AuthNotifier] checkSession: no token found, setting unauthenticated');
         state = const AuthUnauthenticated();
         return;
       }
 
-      print('[AuthNotifier] checkSession: calling getSession API...');
+      AppLogger.debug('[AuthNotifier] checkSession: calling getSession API...');
       final user = await _repository.getSession();
-      print('[AuthNotifier] checkSession: got user ${user.firstName} ${user.lastName}, status=${user.status}');
+      AppLogger.debug('[AuthNotifier] checkSession: got user ${user.firstName} ${user.lastName}, status=${user.status}');
 
       if (_authService.canAccessApp(user)) {
-        print('[AuthNotifier] checkSession: user can access app, setting authenticated');
+        AppLogger.debug('[AuthNotifier] checkSession: user can access app, setting authenticated');
         state = AuthAuthenticated(user: user);
       } else {
-        print('[AuthNotifier] checkSession: user cannot access app (status=${user.status}), setting unauthenticated');
+        AppLogger.debug('[AuthNotifier] checkSession: user cannot access app (status=${user.status}), setting unauthenticated');
         state = const AuthUnauthenticated();
       }
     } on DioException catch (e) {
-      print('[AuthNotifier] checkSession: DioException ${e.response?.statusCode} - ${e.message}');
+      AppLogger.debug('[AuthNotifier] checkSession: DioException ${e.response?.statusCode} - ${e.message}');
       // Handle 401 Unauthorized
       if (e.response?.statusCode == 401) {
-        print('[AuthNotifier] checkSession: 401 - clearing tokens');
+        AppLogger.debug('[AuthNotifier] checkSession: 401 - clearing tokens');
         await _repository.clearTokens();
         state = const AuthUnauthenticated();
       }
@@ -76,24 +77,24 @@ class AuthNotifier extends StateNotifier<AuthState> {
       else if (e.response?.statusCode == 403) {
         final data = e.response?.data;
         if (data is Map && data['code'] == 'NO_OPERATOR_ACCESS') {
-          print('[AuthNotifier] checkSession: NO_OPERATOR_ACCESS - clearing tokens');
+          AppLogger.debug('[AuthNotifier] checkSession: NO_OPERATOR_ACCESS - clearing tokens');
           await _repository.clearTokens();
           state = AuthError(
             message: data['message'] as String? ??
                 'Your access has been removed. Please contact an operator.',
           );
         } else {
-          print('[AuthNotifier] checkSession: 403 - setting unauthenticated');
+          AppLogger.debug('[AuthNotifier] checkSession: 403 - setting unauthenticated');
           state = const AuthUnauthenticated();
         }
       } else {
         // Network errors - can't verify session
         // Force login for safety (can't access app without network anyway)
-        print('[AuthNotifier] checkSession: network error, setting unauthenticated');
+        AppLogger.debug('[AuthNotifier] checkSession: network error, setting unauthenticated');
         state = const AuthUnauthenticated();
       }
     } catch (e) {
-      print('[AuthNotifier] checkSession: unexpected error $e');
+      AppLogger.debug('[AuthNotifier] checkSession: unexpected error $e');
       state = const AuthUnauthenticated();
     }
   }
@@ -729,7 +730,7 @@ class InviteAuthNotifier extends StateNotifier<InviteAuthState> {
   /// Verify invite code and get driver info
   Future<void> verifyInvite(String code) async {
     final trimmedCode = code.trim().toUpperCase();
-    print('[InviteAuth] verifyInvite called with code: $trimmedCode');
+    AppLogger.debug('[InviteAuth] verifyInvite called with code: $trimmedCode');
 
     // Only check for empty - let the API validate the format
     if (trimmedCode.isEmpty) {
@@ -744,9 +745,9 @@ class InviteAuthNotifier extends StateNotifier<InviteAuthState> {
     state = InviteAuthVerifying(code: trimmedCode);
 
     try {
-      print('[InviteAuth] Calling repository.verifyInvite...');
+      AppLogger.debug('[InviteAuth] Calling repository.verifyInvite...');
       final response = await _repository.verifyInvite(trimmedCode);
-      print('[InviteAuth] Response received: firstName=${response.firstName}, lastName=${response.lastName}');
+      AppLogger.debug('[InviteAuth] Response received: firstName=${response.firstName}, lastName=${response.lastName}');
 
       state = InviteAuthVerified(
         code: trimmedCode,
@@ -757,8 +758,8 @@ class InviteAuthNotifier extends StateNotifier<InviteAuthState> {
         companyName: response.companyName,
       );
     } catch (e, stackTrace) {
-      print('[InviteAuth] ERROR: $e');
-      print('[InviteAuth] Stack: $stackTrace');
+      AppLogger.debug('[InviteAuth] ERROR: $e');
+      AppLogger.debug('[InviteAuth] Stack: $stackTrace');
       final error = _parseInviteError(e);
       state = InviteAuthError(
         message: error.message,
@@ -866,7 +867,7 @@ class InviteAuthNotifier extends StateNotifier<InviteAuthState> {
         // Verify token was saved (web platform async storage workaround)
         // Read back to ensure storage has propagated
         final savedToken = await _dioClient.getAccessToken();
-        print('[InviteAuth] Token saved and verified: ${savedToken != null ? 'yes (${savedToken.length} chars)' : 'NO - STORAGE ISSUE'}');
+        AppLogger.debug('[InviteAuth] Token saved and verified: ${savedToken != null ? 'yes (${savedToken.length} chars)' : 'NO - STORAGE ISSUE'}');
       }
 
       state = InviteAuthSuccess(

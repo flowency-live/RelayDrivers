@@ -20,8 +20,10 @@ import '../../features/face_verification/presentation/pages/face_registration_pa
 import '../../features/profile/presentation/pages/my_operators_page.dart';
 import '../../features/documents/presentation/pages/share_document_page.dart';
 import '../../features/calendar/presentation/pages/calendar_page.dart';
+import '../../features/jobs/presentation/pages/jobs_page.dart';
+import '../../features/jobs/presentation/pages/job_detail_page.dart';
+import '../../features/earnings/presentation/pages/earnings_page.dart';
 import '../navigation/app_shell.dart';
-import '../design_system/tokens/colors.dart';
 
 // Navigator keys for shell branches
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -211,21 +213,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: AppRoutes.bookings,
-                builder: (context, state) => const _PlaceholderPage(
-                  title: 'Bookings',
-                  icon: Icons.list_alt_rounded,
-                  description: 'Your upcoming and past bookings',
-                ),
+                builder: (context, state) => const JobsPage(),
                 routes: [
                   GoRoute(
                     path: ':bookingId',
                     builder: (context, state) {
                       final bookingId = state.pathParameters['bookingId'] ?? '';
-                      return _PlaceholderPage(
-                        title: 'Booking Detail',
-                        icon: Icons.assignment_rounded,
-                        description: 'Booking: $bookingId',
-                      );
+                      return JobDetailPage(jobId: bookingId);
                     },
                   ),
                 ],
@@ -239,11 +233,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: AppRoutes.earnings,
-                builder: (context, state) => const _PlaceholderPage(
-                  title: 'Earnings',
-                  icon: Icons.account_balance_wallet_rounded,
-                  description: 'Track your earnings by period',
-                ),
+                builder: (context, state) => const EarningsPage(),
               ),
             ],
           ),
@@ -372,67 +362,3 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     ),
   );
 });
-
-/// Placeholder page for features not yet implemented
-class _PlaceholderPage extends StatelessWidget {
-  final String title;
-  final IconData icon;
-  final String description;
-
-  const _PlaceholderPage({
-    required this.title,
-    required this.icon,
-    required this.description,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
-    final isDark = brightness == Brightness.dark;
-
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        title: Text(title),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: DesignColors.accent.withOpacity(0.15),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                icon,
-                size: 64,
-                color: DesignColors.accent,
-              ),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              title,
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    color: isDark
-                        ? DesignColors.textPrimary
-                        : DesignColors.lightTextPrimary,
-                  ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              description,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: isDark
-                        ? DesignColors.textSecondary
-                        : DesignColors.lightTextSecondary,
-                  ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}

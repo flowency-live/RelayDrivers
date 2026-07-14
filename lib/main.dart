@@ -6,6 +6,8 @@ import 'core/router/app_router.dart';
 import 'core/design_system/theme.dart';
 import 'core/theme/theme_provider.dart';
 import 'core/services/pwa_install_service.dart';
+import 'core/services/push_notification_service.dart';
+import 'features/jobs/application/jobs_providers.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,6 +43,19 @@ class _RelayDriversAppState extends ConsumerState<RelayDriversApp>
     super.initState();
     // Listen for system brightness changes
     WidgetsBinding.instance.addObserver(this);
+
+    // Initialise push notifications on native platforms. Guarded so a missing
+    // Firebase config (see FIREBASE_SETUP.md) never blocks startup. On a
+    // new-job message the jobs list is refreshed so the driver sees the offer
+    // without polling. Web PWA push is out of scope here.
+    if (!kIsWeb) {
+      Future.microtask(() async {
+        final push = ref.read(pushNotificationServiceProvider);
+        push.onJobsShouldRefresh =
+            () => ref.read(jobsStateProvider.notifier).refresh();
+        await push.initialize();
+      });
+    }
   }
 
   @override

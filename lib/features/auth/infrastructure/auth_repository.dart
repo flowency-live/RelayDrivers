@@ -1,5 +1,6 @@
 import '../../../config/api_config.dart';
 import '../../../core/network/dio_client.dart';
+import '../../../core/utils/app_logger.dart';
 import '../domain/models/auth_response.dart';
 import '../domain/models/driver_user.dart';
 import '../domain/models/login_request.dart';
@@ -172,16 +173,16 @@ class AuthRepository {
 
   /// Verify invite code and get driver info (pre-claim step)
   Future<InviteVerifyResponse> verifyInvite(String code) async {
-    print('[AuthRepository] verifyInvite: POST ${ApiConfig.authInviteVerify} with code=$code');
+    AppLogger.debug('[AuthRepository] verifyInvite: POST ${ApiConfig.authInviteVerify} with code=$code');
     try {
       final response = await _dioClient.dio.post(
         ApiConfig.authInviteVerify,
         data: {'code': code},
       );
-      print('[AuthRepository] verifyInvite response: ${response.statusCode} - ${response.data}');
+      AppLogger.debug('[AuthRepository] verifyInvite response: ${response.statusCode} - ${response.data}');
       return InviteVerifyResponse.fromJson(response.data as Map<String, dynamic>);
     } catch (e) {
-      print('[AuthRepository] verifyInvite ERROR: $e');
+      AppLogger.debug('[AuthRepository] verifyInvite ERROR: $e');
       rethrow;
     }
   }

@@ -9,6 +9,11 @@ import '../../../notifications/application/notification_providers.dart';
 import '../../../onboarding/application/onboarding_providers.dart';
 import '../../../vehicles/application/vehicle_providers.dart';
 import '../../../documents/application/document_providers.dart';
+import '../../../jobs/application/jobs_providers.dart';
+import '../../../jobs/presentation/widgets/job_list_card.dart';
+import '../../../earnings/application/earnings_providers.dart';
+import '../../application/duty_providers.dart';
+import '../../../../core/utils/currency.dart';
 import '../../../../config/environment.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/design_system/tokens/colors.dart';
@@ -37,9 +42,6 @@ class HomePage extends ConsumerStatefulWidget {
 }
 
 class _HomePageState extends ConsumerState<HomePage> {
-  bool _isOnDuty = false;
-  bool _isDutyLoading = false;
-
   /// Get display status from user model (handles both legacy and new architecture)
   String _getDisplayStatus(driver_user.DriverUser user) {
     // New architecture: derive status from operators
@@ -58,27 +60,18 @@ class _HomePageState extends ConsumerState<HomePage> {
     return user.hasActiveOperators && !user.isOnboarding;
   }
 
-  void _toggleDuty() {
-    setState(() => _isDutyLoading = true);
-    // Simulate API call
-    Future.delayed(const Duration(milliseconds: 500), () {
-      if (mounted) {
-        setState(() {
-          _isOnDuty = !_isOnDuty;
-          _isDutyLoading = false;
-        });
-      }
-    });
-  }
-
   @override
   void initState() {
     super.initState();
-    // Load all data needed for onboarding progress calculation
+    // Load all data needed for the dashboard: onboarding progress inputs plus
+    // active-driver data (jobs, duty status). Earnings load lazily via a
+    // FutureProvider watched in the view.
     Future.microtask(() {
       ref.read(profileStateProvider.notifier).loadProfile();
       ref.read(vehicleStateProvider.notifier).loadVehicles();
       ref.read(documentStateProvider.notifier).loadDocuments();
+      ref.read(jobsStateProvider.notifier).loadJobs();
+      ref.read(dutyStateProvider.notifier).load();
     });
   }
 
@@ -87,6 +80,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     final user = ref.watch(currentUserProvider);
     final profile = ref.watch(currentProfileProvider);
     final onboardingProgress = ref.watch(onboardingProgressProvider);
+    final isOnDuty = ref.watch(isOnDutyProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     if (user == null) {
@@ -175,7 +169,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                     operatorName: profile?.tenant?.companyName,
                     onNotificationsTap: () =>
                         context.push(AppRoutes.notifications),
-                    isOnDuty: _isOnDuty,
+                    isOnDuty: isOnDuty,
                     showDutyStatus: isActiveDriver,
                   ),
 
@@ -213,74 +207,82 @@ class _HomePageState extends ConsumerState<HomePage> {
     );
   }
 
-  /// Active driver view - duty toggle, current job, schedule, earnings
+  /// Active driver view - duty toggle, current job, schedule, earnings.
+  /// All data is now sourced from live providers (jobs, duty, earnings).
   Widget _buildActiveDriverView(BuildContext context, bool isDark) {
+    final currentJob = ref.watch(currentJobProvider);
+    final isOnDuty = ref.watch(isOnDutyProvider);
+    final isDutyLoading = ref.watch(isDutyLoadingProvider);
+    final upcomingJobs = ref.watch(offeredJobsProvider);
+    final todayEarnings = ref.watch(todayEarningsProvider);
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: DesignSpacing.lg),
       child: Column(
         children: [
-          // Duty toggle
+          // Duty toggle - wired to the availability API via dutyStateProvider
           DutyToggle(
-            isOnDuty: _isOnDuty,
-            isLoading: _isDutyLoading,
-            onToggle: _toggleDuty,
+            isOnDuty: isOnDuty,
+            isLoading: isDutyLoading,
+            onToggle: () => ref.read(dutyStateProvider.notifier).toggle(),
           ),
 
           const SizedBox(height: DesignSpacing.xxl),
 
-        // Current job or empty state
-        // TODO: Wire to actual job data
-        if (_isOnDuty)
-          CurrentJobCard(
-            customerName: 'Edward Blake',
-            customerCompany: 'BoardWalk Ltd',
-            pickupAddress: '74 Duke Street, Soho',
-            pickupTime: 'Pickup in 7 min',
-            dropoffAddress: 'Hilton London Metropole',
-            dropoffTime: '12 min',
-            onCallTap: () {},
-            onMessageTap: () {},
-            onCardTap: () => context.push(AppRoutes.bookings),
-          )
-        else
-          const NoCurrentJobCard(),
-
-        const SizedBox(height: DesignSpacing.lg),
-
-        // Schedule preview
-        // TODO: Wire to actual schedule data
-        SchedulePreviewCard(
-          items: [
-            ScheduleItemData(
-              time: '04:45 pm',
-              location: 'Heathrow Airport',
-              price: '£85',
+          // Current/next job or empty state
+          if (currentJob != null)
+            CurrentJobCard(
+              customerName: currentJob.bookingId ?? currentJob.jobId,
+              customerCompany: currentJob.status.displayName,
+              pickupAddress: currentJob.pickupAddress,
+              pickupTime: formatScheduledTime(currentJob.scheduledDateTime),
+              dropoffAddress: currentJob.dropoffAddress,
+              dropoffTime: Currency.formatPenceCompact(currentJob.fare),
+              onCardTap: () => context
+                  .push(AppRoutes.bookingDetailRoute(currentJob.jobId)),
+            )
+          else
+            NoCurrentJobCard(
+              onViewSchedule: () => context.push(AppRoutes.bookings),
             ),
-            ScheduleItemData(
-              time: '07:00 pm',
-              location: 'Paddington Station',
-              price: '£42',
-            ),
-            ScheduleItemData(
-              time: '09:30 am',
-              location: 'Hackney Central',
-              price: '£35',
-            ),
-          ],
-          onViewAll: () => context.push(AppRoutes.bookings),
-        ),
 
-        const SizedBox(height: DesignSpacing.xl),
+          const SizedBox(height: DesignSpacing.lg),
 
-        // Earnings today
-        // TODO: Wire to actual earnings data
-        EarningsTodayCard(
-          amount: '£154.20',
-          completedJobs: 3,
-          trend: '+12%',
-          isTrendPositive: true,
-          onTap: () => context.push(AppRoutes.earnings),
-        ),
+          // Schedule preview - upcoming offered jobs
+          SchedulePreviewCard(
+            items: upcomingJobs
+                .take(3)
+                .map(
+                  (job) => ScheduleItemData(
+                    time: formatScheduledTime(job.scheduledDateTime),
+                    location: job.pickupAddress,
+                    price: Currency.formatPenceCompact(job.fare),
+                    onTap: () => context
+                        .push(AppRoutes.bookingDetailRoute(job.jobId)),
+                  ),
+                )
+                .toList(),
+            onViewAll: () => context.push(AppRoutes.bookings),
+          ),
+
+          const SizedBox(height: DesignSpacing.xl),
+
+          // Earnings today - from GET /driver/earnings for today's range
+          todayEarnings.when(
+            data: (summary) => EarningsTodayCard(
+              amount: Currency.formatPence(summary.grossEarnings),
+              completedJobs: summary.completedJobs,
+              onTap: () => context.push(AppRoutes.earnings),
+            ),
+            loading: () => EarningsTodayCard(
+              amount: Currency.formatPence(0),
+              onTap: () => context.push(AppRoutes.earnings),
+            ),
+            error: (_, __) => EarningsTodayCard(
+              amount: '-',
+              onTap: () => context.push(AppRoutes.earnings),
+            ),
+          ),
         ],
       ),
     );

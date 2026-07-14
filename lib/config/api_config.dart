@@ -43,11 +43,36 @@ class ApiConfig {
   static const String faceVerify = '/driver/face/verify';
   static const String faceStatus = '/driver/face/status';
 
-  // Driver Jobs endpoints (Phase 2)
+  // Driver Jobs endpoints (driver-jobs API)
   static const String jobs = '/driver/jobs';
+  static String jobAccept(String jobId) => '/driver/jobs/$jobId/accept';
+  static String jobDecline(String jobId) => '/driver/jobs/$jobId/decline';
+  static String jobStatus(String jobId) => '/driver/jobs/$jobId/status';
+
+  // Driver Earnings endpoint (driver-jobs API)
+  static const String earnings = '/driver/earnings';
 
   // Driver Notifications endpoints
   static const String notifications = '/driver/notifications';
   static const String notificationsUnreadCount = '/driver/notifications/unread-count';
   static const String notificationsReadAll = '/driver/notifications/read-all';
+
+  // ---------------------------------------------------------------------------
+  // NOT YET IMPLEMENTED BY BACKEND (marked TODO). These are the expected paths
+  // the client is coded against; enable the callers once the routes exist.
+  // ---------------------------------------------------------------------------
+
+  /// TODO(backend): Push device-token registration. No such route exists in the
+  /// deployed gateway yet. Expected contract:
+  ///   POST /driver/devices  { platform: "android"|"ios"|"web", token: "<fcm>" }
+  ///   -> 200 { success: true }
+  static const String deviceRegister = '/driver/devices';
+
+  /// TODO(backend): Live driver location ping while a job is en_route/arrived.
+  /// No such route exists in the deployed gateway yet. Expected contract:
+  ///   POST /driver/jobs/{id}/location
+  ///     { lat: number, lng: number, heading?: number, speed?: number,
+  ///       accuracy?: number, recordedAt: ISO8601 }
+  ///   -> 200 { success: true }
+  static String jobLocation(String jobId) => '/driver/jobs/$jobId/location';
 }

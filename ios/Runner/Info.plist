@@ -4,6 +4,18 @@
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<!-- Permission usage strings (mandatory - iOS crashes on first access and
+	     App Store rejects builds without them). -->
+	<key>NSCameraUsageDescription</key>
+	<string>Relay Drivers uses the camera to take your profile photo, capture document and vehicle photos, and scan your driving licence.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Relay Drivers needs access to your photo library to upload documents and vehicle photos.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Relay Drivers uses Face ID to securely unlock the app.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Relay Drivers shares your location with the operator while you are on the way to and at a pickup, so they can track the job.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Relay Drivers shares your location with the operator while you are on an active job so they can track progress to the pickup.</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
